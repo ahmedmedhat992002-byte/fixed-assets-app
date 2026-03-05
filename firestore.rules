@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Global Helpers ───────────────────────────────────────────────────────
+    function isAuthed() { return request.auth != null; }
+    function isSelf(uid) { return isAuthed() && request.auth.uid == uid; }
+
+    // ── /users Collection ────────────────────────────────────────────────────
+    match /users/{uid} {
+      // Required for Chat discovery: allow all authenticated users to read.
+      allow read: if isAuthed();
+      
+      // Allow users to manage their own profile.
+      allow create, update: if isSelf(uid);
+      
+      // Sub-collections: strictly owned by the user.
+      match /{allSubcollections=**} {
+        allow read, write: if isSelf(uid);
+      }
+    }
+
+    // ── /chats Collection ────────────────────────────────────────────────────
+    match /chats/{chatId} {
+      // Only participants can see the chat metadata.
+      allow read: if isAuthed() && request.auth.uid in resource.data.participants;
+      
+      // Any authenticated user can start a chat if they are a participant.
+      allow create: if isAuthed() && request.auth.uid in request.resource.data.participants;
+      
+      // Allow participants to update lastMessage etc.
+      allow update: if isAuthed() && request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        // Access messages only if you are a participant in the parent chat.
+        allow read, create: if isAuthed() && 
+          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+    }
+
+    // ── /companies Collection ────────────────────────────────────────────────
+    match /companies/{companyId} {
+      // Basic company info: read-only for authenticated users.
+      allow read: if isAuthed();
+      allow write: if false;
+
+      // Legacy company-scoped assets.
+      match /assets/{assetId} {
+        allow read, write: if isAuthed(); // Simplified for troubleshooting
+      }
+
+      match /users/{companyUid} {
+        allow read: if isAuthed();
+        allow write: if false;
+      }
+    }
+
+    // ── /invitations Collection ──────────────────────────────────────────────
+    match /invitations/{id} {
+      allow read, write: if isAuthed();
+    }
+  }
+}

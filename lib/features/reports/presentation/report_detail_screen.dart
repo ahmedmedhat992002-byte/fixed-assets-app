@@ -1,0 +1,345 @@
+import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+
+class ReportDetailScreen extends StatelessWidget {
+  const ReportDetailScreen({
+    super.key,
+    required this.title,
+    required this.type,
+    required this.date,
+    required this.period,
+    required this.icon,
+  });
+
+  final String title;
+  final String type;
+  final String date;
+  final String period;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.primary,
+          ),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Report'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_rounded),
+            onPressed: () => ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Downloading $title.pdf…'))),
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_rounded),
+            onPressed: () => ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Sharing $title…'))),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      type,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 14,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        date,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Icon(
+                        Icons.date_range_rounded,
+                        size: 14,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        period,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            _Section(
+              title: 'Summary',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  _InfoRow(label: 'Total Assets Covered', value: '248'),
+                  _InfoRow(label: 'Total Value', value: 'LE 8,502,000'),
+                  _InfoRow(label: 'Depreciation Amount', value: 'LE 1,240,500'),
+                  _InfoRow(label: 'Net Book Value', value: 'LE 7,261,500'),
+                  _InfoRow(label: 'Report Generated By', value: 'System Auto'),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            const _Section(
+              title: 'Asset Breakdown',
+              child: Column(
+                children: [
+                  _BreakdownRow(
+                    category: 'Vehicles',
+                    count: '48',
+                    value: 'LE 2,400,000',
+                  ),
+                  Divider(height: 24, color: AppColors.border),
+                  _BreakdownRow(
+                    category: 'Machinery',
+                    count: '92',
+                    value: 'LE 4,100,000',
+                  ),
+                  Divider(height: 24, color: AppColors.border),
+                  _BreakdownRow(
+                    category: 'Intangible',
+                    count: '108',
+                    value: 'LE 2,002,000',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            _Section(
+              title: 'Attachments',
+              child: Column(
+                children: [
+                  _AttachmentRow(name: '$title.pdf', size: '2.4 MB'),
+                  const SizedBox(height: 12),
+                  const _AttachmentRow(
+                    name: 'Supporting Data.xlsx',
+                    size: '1.1 MB',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  const _Section({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  const _BreakdownRow({
+    required this.category,
+    required this.count,
+    required this.value,
+  });
+
+  final String category;
+  final String count;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Expanded(child: Text(category, style: theme.textTheme.bodyMedium)),
+        Text(
+          count,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AttachmentRow extends StatelessWidget {
+  const _AttachmentRow({required this.name, required this.size});
+
+  final String name;
+  final String size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.danger.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.picture_as_pdf_rounded,
+            color: AppColors.danger,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: theme.textTheme.bodyMedium),
+              Text(
+                size,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.download_rounded),
+          color: AppColors.primary,
+          onPressed: () {},
+        ),
+      ],
+    );
+  }
+}

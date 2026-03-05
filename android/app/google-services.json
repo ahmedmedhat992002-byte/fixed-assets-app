@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "364117275125",
+    "project_id": "fixed-asset-af615",
+    "storage_bucket": "fixed-asset-af615.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364117275125:android:01c6675a46beb534f4f0bc",
+        "android_client_info": {
+          "package_name": "com.example.assets_management"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAweCMh8LEPU_MyCC2u5M2jyTFjCoYOtdg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
