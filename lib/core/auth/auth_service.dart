@@ -135,10 +135,24 @@ class AuthService extends ChangeNotifier {
   /// Starts listening to [FirebaseAuth.authStateChanges] and resolves
   /// the initial auth state before the first frame is rendered.
   void initialize() {
+    bool _authResolved = false;
+
     FirebaseAuth.instance.authStateChanges().listen((user) {
+      _authResolved = true;
       _onAuthStateChanged(user);
       if (user != null) {
         updatePresence(true);
+      }
+    });
+
+    // Safety timeout: if Firebase Auth stream hasn't fired in 5 seconds
+    // (common on sideloaded iOS apps), force the user to the login screen.
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!_authResolved) {
+        debugPrint(
+          '[AuthService] Auth stream timeout — forcing unauthenticated',
+        );
+        _setStatus(AuthStatus.unauthenticated);
       }
     });
   }
