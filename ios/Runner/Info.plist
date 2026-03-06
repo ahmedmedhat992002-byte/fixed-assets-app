@@ -49,5 +49,15 @@
 		<false/>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>We need access to your microphone to record voice notes.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>We need access to your camera to scan QR codes and take photos of assets.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>We need access to your photo library to pick images for assets and reports.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>We need your location to attach location data to reports and assets.</string>
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>We need your location for real-time tracking of assets.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>We need your location for real-time tracking of assets.</string>
 	</dict>
 </plist>
