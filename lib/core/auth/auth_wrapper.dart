@@ -72,11 +72,40 @@ class _AuthGuard extends StatelessWidget {
   }
 }
 
-class _LoadingPage extends StatelessWidget {
+class _LoadingPage extends StatefulWidget {
   const _LoadingPage();
 
   @override
+  State<_LoadingPage> createState() => _LoadingPageState();
+}
+
+class _LoadingPageState extends State<_LoadingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Safety timeout: if Firebase Auth has not responded in 6 seconds,
+    // force the user to the login screen so they are never stuck on splash.
+    Future.delayed(const Duration(seconds: 6), () {
+      if (!mounted) return;
+      final auth = context.read<AuthService>();
+      if (auth.status == AuthStatus.initial ||
+          auth.status == AuthStatus.loading) {
+        auth.forceUnauthenticated();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: const SizedBox.shrink());
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Image.asset(
+          'assets/logo_new.jpeg',
+          width: 200,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
   }
 }

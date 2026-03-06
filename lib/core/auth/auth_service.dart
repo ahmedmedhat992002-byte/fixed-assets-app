@@ -343,6 +343,15 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Called by the splash safety timeout when Firebase hasn't responded
+  /// in time. Moves the user to [AuthStatus.unauthenticated] so they see
+  /// the login screen instead of being stuck on the splash.
+  void forceUnauthenticated() {
+    if (_status == AuthStatus.initial || _status == AuthStatus.loading) {
+      _setStatus(AuthStatus.unauthenticated);
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   //  Google Sign-In
   // ═══════════════════════════════════════════════════════════════════════════
