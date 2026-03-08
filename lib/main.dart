@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,12 +31,23 @@ const _androidOptions = FirebaseOptions(
   storageBucket: 'fixed-asset-af615.firebasestorage.app',
 );
 
+const _iosOptions = FirebaseOptions(
+  apiKey: 'AIzaSyCn_1s2bFqrjLFe2JEaQYSE8erJ1_piM8w',
+  appId: '1:364117275125:ios:7b106d4c9cc8f837f4f0bc',
+  messagingSenderId: '364117275125',
+  projectId: 'fixed-asset-af615',
+  storageBucket: 'fixed-asset-af615.firebasestorage.app',
+  iosBundleId: 'com.example.assetsManagement',
+);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Explicit options — Firebase never calls optionsFromResource().
-  // No google-services Gradle plugin or values.xml needed.
-  await Firebase.initializeApp(options: _androidOptions);
+  // Using correct options per platform prevents native crashes at boot.
+  await Firebase.initializeApp(
+    options: Platform.isIOS ? _iosOptions : _androidOptions,
+  );
 
   await Supabase.initialize(
     url: SupabaseConfig.url,
