@@ -41,35 +41,53 @@ const _iosOptions = FirebaseOptions(
 );
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Explicit options — Firebase never calls optionsFromResource().
-  // Using correct options per platform prevents native crashes at boot.
-  await Firebase.initializeApp(
-    options: Platform.isIOS ? _iosOptions : _androidOptions,
-  );
+    // Using correct options per platform prevents native crashes at boot.
+    await Firebase.initializeApp(
+      options: Platform.isIOS ? _iosOptions : _androidOptions,
+    );
 
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-  );
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    );
 
-  await HiveService.init();
+    await HiveService.init();
 
-  final authService = AuthService()..initialize();
-  final localeController = await LocaleController.create();
-  final themeController = await ThemeController.create();
-  final notificationSettingsController =
-      await NotificationSettingsController.create();
-  final securitySettingsController = await SecuritySettingsController.create();
+    final authService = AuthService()..initialize();
+    final localeController = await LocaleController.create();
+    final themeController = await ThemeController.create();
+    final notificationSettingsController =
+        await NotificationSettingsController.create();
+    final securitySettingsController = await SecuritySettingsController.create();
 
-  runApp(
-    App(
-      authService: authService,
-      localeController: localeController,
-      themeController: themeController,
-      notificationSettingsController: notificationSettingsController,
-      securitySettingsController: securitySettingsController,
-    ),
-  );
+    runApp(
+      App(
+        authService: authService,
+        localeController: localeController,
+        themeController: themeController,
+        notificationSettingsController: notificationSettingsController,
+        securitySettingsController: securitySettingsController,
+      ),
+    );
+  } catch (e, stack) {
+    debugPrint('FATAL INIT ERROR: $e\n$stack');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'App Initialization Failed:\n\n$e\n\n$stack',
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
