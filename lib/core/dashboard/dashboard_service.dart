@@ -196,7 +196,7 @@ class DashboardService extends ChangeNotifier {
 
   Stream<List<TransactionItem>> getLatestTransactionsStream(String uid) {
     if (uid.isEmpty) return Stream.value([]);
-    print(
+    debugPrint(
       'DEBUG: DashboardService - getLatestTransactionsStream called for $uid',
     );
     return _firestore
@@ -215,14 +215,14 @@ class DashboardService extends ChangeNotifier {
               .toList();
         })
         .handleError((error) {
-          print('DEBUG: Error in getLatestTransactionsStream: $error');
+          debugPrint('DEBUG: Error in getLatestTransactionsStream: $error');
           return <TransactionItem>[];
         });
   }
 
   Stream<List<TransactionItem>> getAllTransactionsStream(String uid) {
     if (uid.isEmpty) return Stream.value([]);
-    print('DEBUG: DashboardService - getAllTransactionsStream called for $uid');
+    debugPrint('DEBUG: DashboardService - getAllTransactionsStream called for $uid');
     return _firestore
         .collection('users')
         .doc(uid)
@@ -235,7 +235,7 @@ class DashboardService extends ChangeNotifier {
               .toList();
         })
         .handleError((error) {
-          print('DEBUG: Error in getAllTransactionsStream: $error');
+          debugPrint('DEBUG: Error in getAllTransactionsStream: $error');
           return <TransactionItem>[];
         });
   }
@@ -257,13 +257,13 @@ class DashboardService extends ChangeNotifier {
       }
 
       await batch.commit();
-      print(
+      debugPrint(
         'DEBUG: DashboardService - Successfully deleted all ${snapshot.docs.length} transactions',
       );
       notifyListeners();
       return true;
     } catch (e) {
-      print('DEBUG: Error in deleteAllTransactions: $e');
+      debugPrint('DEBUG: Error in deleteAllTransactions: $e');
       return false;
     }
   }

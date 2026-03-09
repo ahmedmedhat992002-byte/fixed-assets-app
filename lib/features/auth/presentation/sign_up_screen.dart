@@ -209,7 +209,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: const SizedBox.shrink(),
+                        child: SizedBox.shrink(),
                       )
                     : const Text(
                         'Create account',

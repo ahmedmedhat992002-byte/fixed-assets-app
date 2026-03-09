@@ -6,7 +6,12 @@ class AppColors {
   static const Color primary = Color(0xFF1E3BEA);
   static const Color primaryDark = Color(0xFF1025A4);
   static const Color primaryLight = Color(0xFFE3E7FF);
+  static const Color primarySoft = Color(0xFFF0F2FF); // Modern soft primary
   static const Color black = Color(0xFF000000);
+
+  // Transparent / Glass variants
+  static Color glassWhite = Colors.white.withValues(alpha: 0.7);
+  static Color glassBackground = const Color(0xFFF5F7FB).withValues(alpha: 0.82);
 
   static const Color secondary = Color(0xFFFFC400);
   static const Color success = Color(0xFF1BA462);

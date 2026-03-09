@@ -81,7 +81,7 @@ class _LogoutButtonState extends State<LogoutButton> {
           child: SizedBox(
             width: 24,
             height: 24,
-            child: const SizedBox.shrink(),
+            child: SizedBox.shrink(),
           ),
         ),
       );

@@ -54,7 +54,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                           itemBuilder: (context, index) => Container(
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: Colors.black.withOpacity(0.02),
+                                color: Colors.black.withValues(alpha: 0.02),
                               ),
                             ),
                           ),
@@ -66,11 +66,11 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                           decoration: BoxDecoration(
                             border: Border(
                               left: BorderSide(
-                                color: Colors.orange.withOpacity(0.5),
+                                color: Colors.orange.withValues(alpha: 0.5),
                                 width: 12,
                               ),
                               bottom: BorderSide(
-                                color: Colors.orange.withOpacity(0.5),
+                                color: Colors.orange.withValues(alpha: 0.5),
                                 width: 12,
                               ),
                             ),
@@ -93,7 +93,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                               height: 24,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.blue.withOpacity(0.2),
+                                color: Colors.blue.withValues(alpha: 0.2),
                                 border: Border.all(
                                   color: Colors.blue,
                                   width: 2,
@@ -342,7 +342,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -387,7 +387,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                                     itemBuilder: (context, index) => Container(
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: Colors.black.withOpacity(0.02),
+                                          color: Colors.black.withValues(alpha: 0.02),
                                         ),
                                       ),
                                     ),
@@ -406,7 +406,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                                         height: 16,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: Colors.blue.withOpacity(0.2),
+                                          color: Colors.blue.withValues(alpha: 0.2),
                                           border: Border.all(
                                             color: Colors.blue,
                                             width: 2,
@@ -439,7 +439,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                               Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.withOpacity(0.1),
+                                  color: Colors.orange.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(

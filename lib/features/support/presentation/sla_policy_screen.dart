@@ -219,7 +219,7 @@ class _SlaPolicyScreenState extends State<SlaPolicyScreen> {
                   ? const SizedBox(
                       width: 24,
                       height: 24,
-                      child: const SizedBox.shrink(),
+                      child: SizedBox.shrink(),
                     )
                   : const Text(
                       "Save SLA Configuration",

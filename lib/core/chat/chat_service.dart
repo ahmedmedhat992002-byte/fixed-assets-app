@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../supabase/supabase_config.dart';
 import '../../features/notifications/data/notification_service.dart';
 import '../../features/notifications/data/notification_model.dart';
+import '../chat/fcm_service.dart';
 
 class ChatService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -122,7 +123,7 @@ class ChatService extends ChangeNotifier {
     String messageType = 'text',
     Map<String, dynamic>? replyTo,
   }) async {
-    if (chatId.isEmpty || (text.trim().isEmpty && fileUrl == null)) return;
+    if (chatId.isEmpty || (text.trim().isEmpty && fileUrl == null && messageType == 'text')) return;
 
     final batch = _firestore.batch();
     final messageRef = _firestore
@@ -151,6 +152,8 @@ class ChatService extends ChangeNotifier {
           ? 'Sent a sticker'
           : messageType == 'asset'
           ? 'Sent an asset'
+          : (fileUrl != null && text.trim().isEmpty)
+          ? (_isImageType(fileType) ? '📷 Photo' : '📎 ${fileName ?? 'File'}')
           : text.trim(),
       'lastMessageAt': FieldValue.serverTimestamp(),
       'lastSenderId': senderId,
@@ -190,18 +193,31 @@ class ChatService extends ChangeNotifier {
         if (pId != senderId) {
           batch.update(chatRef, {'unreadCounts.$pId': FieldValue.increment(1)});
 
-          // Trigger System Notification for the recipient
+          // Trigger in-app notification for the recipient
           if (_notificationService != null) {
             _notificationService!.sendSystemNotificationToUser(
               targetUid: pId,
-              title: 'New Message',
+              title: 'New Message from $senderName',
               subtitle: 'From $senderName',
-              body: text.trim(),
+              body: (fileUrl != null && text.trim().isEmpty)
+                  ? (_isImageType(fileType) ? '📷 Photo' : '📎 ${fileName ?? 'File'}')
+                  : (text.trim().isEmpty ? 'New message' : text.trim()),
               type: NotificationType.message,
               routeName: '/chat_detail',
               routeArgs: {'chatId': chatId},
             );
           }
+
+          // Send FCM push notification
+          final pushBody = (fileUrl != null && text.trim().isEmpty)
+              ? (_isImageType(fileType) ? '📷 Photo' : '📎 ${fileName ?? 'File'}')
+              : (text.trim().isEmpty ? 'New message' : text.trim());
+          FcmService().sendPushToUser(
+            targetUid: pId,
+            title: senderName,
+            body: pushBody,
+            data: {'chatId': chatId, 'type': 'chat_message'},
+          ).ignore();
         }
       }
     }
@@ -209,11 +225,6 @@ class ChatService extends ChangeNotifier {
     try {
       await batch.commit();
     } catch (e) {
-      debugPrint('ERROR: [ChatService] sendMessage failed: $e');
-      if (e is FirebaseException) {
-        debugPrint('  Code: ${e.code}');
-        debugPrint('  Message: ${e.message}');
-      }
       throw Exception('Failed to send message: $e');
     }
   }
@@ -269,19 +280,23 @@ class ChatService extends ChangeNotifier {
         'unreadCounts.$uid': 0,
       });
 
-      // Also mark all incoming messages as seen when the chat is opened
+      // Mark all incoming messages as seen when chat is opened.
+      // Fetch all messages by the other user and update their status.
+      // Note: We avoid multiple inequality filters by only filtering on senderId.
       final messages = await _firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
           .where('senderId', isNotEqualTo: uid)
-          .where('status', isNotEqualTo: 'seen')
           .get();
 
       if (messages.docs.isNotEmpty) {
         final batch = _firestore.batch();
         for (var doc in messages.docs) {
-          batch.update(doc.reference, {'status': 'seen'});
+          final status = doc.data()['status'] as String? ?? '';
+          if (status != 'seen') {
+            batch.update(doc.reference, {'status': 'seen'});
+          }
         }
         await batch.commit();
       }
@@ -519,5 +534,9 @@ class ChatService extends ChangeNotifier {
       debugPrint('Error deleting message: $e');
       throw Exception('Failed to delete message: $e');
     }
+  }
+  bool _isImageType(String? fileType) {
+    if (fileType == null) return false;
+    return ['jpg', 'jpeg', 'png', 'webp', 'gif'].contains(fileType.toLowerCase());
   }
 }

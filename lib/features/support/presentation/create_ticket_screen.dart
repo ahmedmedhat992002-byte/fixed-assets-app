@@ -206,7 +206,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: const SizedBox.shrink(),
+                        child: SizedBox.shrink(),
                       )
                     : Text(
                         l.ticketSubmit,

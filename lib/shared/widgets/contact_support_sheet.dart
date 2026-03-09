@@ -218,7 +218,7 @@ class _ContactSupportSheetState extends State<ContactSupportSheet> {
                         ? const SizedBox(
                             height: 24,
                             width: 24,
-                            child: const SizedBox.shrink(),
+                            child: SizedBox.shrink(),
                           )
                         : const Text(
                             'Submit',

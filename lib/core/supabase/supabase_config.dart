@@ -3,5 +3,5 @@ class SupabaseConfig {
   static const String anonKey =
       'sb_publishable_rjGbbMs_ELFCeH2qGXfFbw_qCxvWFwn';
   static const String chatBucket = 'chat-attachments';
-  static const String profilesBucket = 'profile-images';
+  static const String profilesBucket = 'chat-attachments';
 }

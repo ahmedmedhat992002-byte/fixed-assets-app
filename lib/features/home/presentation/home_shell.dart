@@ -26,10 +26,18 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
   final AdvancedDrawerController _drawerController = AdvancedDrawerController();
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _currentIndex);
+  }
 
   @override
   void dispose() {
     _drawerController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -129,10 +137,21 @@ class _HomeShellState extends State<HomeShell> {
         child: ClipRRect(
           borderRadius: const BorderRadius.all(Radius.circular(24)),
           child: Scaffold(
-            body: IndexedStack(index: _currentIndex, children: pages),
+            body: PageView(
+              controller: _pageController,
+              onPageChanged: (i) => setState(() => _currentIndex = i),
+              children: pages,
+            ),
             bottomNavigationBar: _AppBottomNav(
               currentIndex: _currentIndex,
-              onItemSelected: (i) => setState(() => _currentIndex = i),
+              onItemSelected: (i) {
+                setState(() => _currentIndex = i);
+                _pageController.animateToPage(
+                  i,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                );
+              },
             ),
           ),
         ),

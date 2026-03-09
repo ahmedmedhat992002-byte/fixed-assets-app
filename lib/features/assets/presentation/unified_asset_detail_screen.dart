@@ -142,23 +142,22 @@ class _UnifiedAssetDetailScreenState extends State<UnifiedAssetDetailScreen>
                       ),
                     );
 
-                    if (confirm == true && mounted) {
+                    if (confirm == true && context.mounted) {
                       final service = context.read<AssetService>();
                       final success = await service.deleteAsset(
                         widget.asset.id,
                       );
-                      if (mounted) {
-                        if (success) {
-                          Navigator.of(context).pop();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                service.lastError ?? 'Failed to delete asset',
-                              ),
+                      if (!context.mounted) return;
+                      if (success) {
+                        Navigator.of(context).pop();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              service.lastError ?? 'Failed to delete asset',
                             ),
-                          );
-                        }
+                          ),
+                        );
                       }
                     }
                   },

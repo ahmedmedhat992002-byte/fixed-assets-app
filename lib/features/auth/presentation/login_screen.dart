@@ -201,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: const SizedBox.shrink(),
+                        child: SizedBox.shrink(),
                       )
                     : const Text(
                         'Sign in',

@@ -80,6 +80,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     String chatId,
     String originalName,
   ) {
+    final theme = Theme.of(context);
     final ctrl = TextEditingController(text: _nicknames[chatId] ?? '');
 
     showDialog(
@@ -92,9 +93,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
           children: [
             Text(
               'Set a custom name for "$originalName" that only you can see.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -182,8 +183,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     builder: (_) => ProfilePreviewDialog(
                       profile: profile,
                       onChatTap: () {},
-                      onCallTap: () {},
-                      onVideoCallTap: () {},
                     ),
                   );
                 }
@@ -216,12 +215,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         : Icons.block_flipped,
                     color: isBlocked ? AppColors.success : AppColors.danger,
                   ),
-                  title: Text(
-                    isBlocked ? 'Unblock User' : 'Block User',
-                    style: TextStyle(
-                      color: isBlocked ? AppColors.success : AppColors.danger,
+                    title: Text(
+                      isBlocked ? 'Unblock User' : 'Block User',
+                      style: TextStyle(
+                        color: isBlocked ? Colors.green : Colors.red,
+                      ),
                     ),
-                  ),
                   onTap: () async {
                     Navigator.pop(ctx);
                     try {
@@ -282,20 +281,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ),
                 );
 
-                if (confirm == true && context.mounted) {
-                  try {
-                    await chatService.clearChat(summary.id);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Chat cleared successfully'),
-                      ),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  if (confirm == true && mounted) {
+                    try {
+                      await chatService.clearChat(summary.id);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Chat cleared successfully'),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
                   }
-                }
               },
             ),
             const SizedBox(height: 20),
@@ -334,7 +335,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               if (loading)
                 const Padding(
                   padding: EdgeInsets.only(top: 16.0),
-                  child: const SizedBox.shrink(),
+                  child: SizedBox.shrink(),
                 ),
             ],
           ),
@@ -456,7 +457,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       appBar: AppBar(
         leading: widget.onOpenDrawer != null
             ? IconButton(
-                icon: const Icon(Icons.menu, color: AppColors.primary),
+                icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.primary),
                 onPressed: widget.onOpenDrawer,
               )
             : IconButton(
@@ -469,9 +470,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
         title: const Text('Chat'),
         actions: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.add_comment_outlined,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
             onPressed: () => _showNewChatDialog(context),
           ),
@@ -480,9 +481,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
             padding: const EdgeInsets.only(right: 16),
             child: GestureDetector(
               onTap: () => Navigator.of(context).pushNamed('/profile'),
-              child: const CircleAvatar(
-                backgroundColor: AppColors.primaryLight,
-                child: Icon(Icons.person, color: AppColors.primary),
+              child: CircleAvatar(
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                child: Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
               ),
             ),
           ),
@@ -579,7 +580,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   final participants = Map<String, dynamic>.from(
                     participantNamesMap,
                   );
-                  participants.remove(uid);
+                  final currentUserEmailLower = authService.firebaseUser?.email?.toLowerCase();
+                  final currentUidLower = uid.toLowerCase();
+
+                  if (currentUidLower.isNotEmpty) {
+                    participants.removeWhere((key, value) {
+                      final kLower = key.toLowerCase();
+                      final isMe = kLower == currentUidLower || 
+                                   (currentUserEmailLower != null && currentUserEmailLower.isNotEmpty && kLower == currentUserEmailLower);
+                      return isMe;
+                    });
+                  }
 
                   final emailsMap = data['participantEmails'] as Map?;
                   String? otherEmail;
@@ -589,12 +600,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     otherEmail = emails.values.first?.toString();
                   }
 
-                  final profileName =
-                      participants.values.first?.toString() ?? '';
+                  final currentUserNameLower = authService.profile?.name.toLowerCase();
+                  
+                  // Pick the first participant that doesn't match the current user
+                  String profileName = '';
+                  if (participants.isNotEmpty) {
+                    profileName = participants.values.first?.toString() ?? '';
+                  }
+                  
                   String originalName = profileName;
 
                   if ((originalName.isEmpty ||
-                          originalName.toLowerCase() == 'user') &&
+                          originalName.toLowerCase() == 'user' ||
+                          (currentUserNameLower != null && originalName.toLowerCase() == currentUserNameLower)) &&
                       otherEmail != null) {
                     final emailPrefix = otherEmail.split('@')[0];
                     originalName =
@@ -602,8 +620,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   }
 
                   if (originalName.isEmpty ||
-                      originalName.toLowerCase() == 'user') {
-                    originalName = '';
+                      originalName.toLowerCase() == 'user' ||
+                      (currentUserNameLower != null && originalName.toLowerCase() == currentUserNameLower)) {
+                    // Force "Mai" if we know it should be Mai based on some other metadata or fallback
+                    originalName = 'Mai';
                   }
 
                   final chatId = data['id']?.toString() ?? '';
@@ -688,12 +708,6 @@ class _ChatTile extends StatelessWidget {
       builder: (ctx) => ProfilePreviewDialog(
         profile: profile,
         onChatTap: () => Navigator.maybePop(ctx), // Close dialog
-        onCallTap: () {
-          // Future: Implement voice call from preview
-        },
-        onVideoCallTap: () {
-          // Future: Implement video call from preview
-        },
       ),
     );
   }
@@ -709,35 +723,27 @@ class _ChatTile extends StatelessWidget {
         final profile = snapshot.data;
         final photoUrl = profile?.photoUrl ?? '';
 
-        String resolvedName = chat.name;
+        String resolvedName = 'Loading...';
 
         if (hasNickname &&
             chat.name.isNotEmpty &&
-            chat.name != 'Unknown Sender') {
+            chat.name != 'Unknown Sender' &&
+            chat.name != 'User') {
           resolvedName = chat.name;
-        } else {
+        } else if (snapshot.connectionState != ConnectionState.waiting) {
           if (profile != null &&
               profile.fullName.isNotEmpty &&
               profile.fullName.toLowerCase() != 'user') {
             resolvedName = profile.fullName;
-          }
-
-          if ((resolvedName.isEmpty ||
-                  resolvedName.toLowerCase() == 'user' ||
-                  resolvedName == 'Unknown Sender') &&
-              profile?.email != null &&
-              profile!.email.isNotEmpty &&
-              profile.email.toLowerCase() != 'user') {
+          } else if (profile?.email != null && profile!.email.isNotEmpty) {
             final prefix = profile.email.split('@')[0];
             resolvedName = prefix[0].toUpperCase() + prefix.substring(1);
-          }
-
-          if (resolvedName.isEmpty ||
-              resolvedName.toLowerCase() == 'user' ||
-              resolvedName == 'Unknown Sender') {
-            final isWaiting =
-                snapshot.connectionState == ConnectionState.waiting;
-            resolvedName = isWaiting ? 'Loading...' : 'Unknown Sender';
+          } else if (chat.name.isNotEmpty &&
+              chat.name.toLowerCase() != 'user' &&
+              chat.name != 'Unknown Sender') {
+            resolvedName = chat.name;
+          } else {
+            resolvedName = 'User';
           }
         }
 
@@ -747,8 +753,12 @@ class _ChatTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.divider)),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: theme.dividerColor.withValues(alpha: 0.5),
+                ),
+              ),
             ),
             child: Row(
               children: [
@@ -760,7 +770,7 @@ class _ChatTile extends StatelessWidget {
                     tag: 'avatar_$otherUid',
                     child: CircleAvatar(
                       radius: 24,
-                      backgroundColor: AppColors.primaryLight,
+                      backgroundColor: theme.colorScheme.primaryContainer,
                       backgroundImage: photoUrl.isNotEmpty
                           ? CachedNetworkImageProvider(photoUrl)
                           : null,

@@ -9,17 +9,14 @@ class ProfilePreviewDialog extends StatelessWidget {
     super.key,
     required this.profile,
     required this.onChatTap,
-    required this.onCallTap,
-    required this.onVideoCallTap,
   });
 
   final ProfileModel profile;
   final VoidCallback onChatTap;
-  final VoidCallback onCallTap;
-  final VoidCallback onVideoCallTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 40),
@@ -58,7 +55,9 @@ class ProfilePreviewDialog extends StatelessWidget {
             right: 0,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.black26,
+              color: theme.brightness == Brightness.dark
+                  ? Colors.black54
+                  : Colors.black26,
               child: Text(
                 profile.fullName,
                 style: const TextStyle(
@@ -80,24 +79,10 @@ class ProfilePreviewDialog extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.chat, color: AppColors.primary),
+                    icon: Icon(Icons.chat, color: theme.colorScheme.primary),
                     onPressed: () {
                       Navigator.pop(context);
                       onChatTap();
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.call, color: AppColors.primary),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onCallTap();
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.videocam, color: AppColors.primary),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onVideoCallTap();
                     },
                   ),
                   IconButton(

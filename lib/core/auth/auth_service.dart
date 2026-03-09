@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../sync/models/company_user_local.dart';
 import '../utils/data_utils.dart'; // Added for safe extraction
+import '../chat/fcm_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Auth Error Domain
@@ -135,20 +136,21 @@ class AuthService extends ChangeNotifier {
   /// Starts listening to [FirebaseAuth.authStateChanges] and resolves
   /// the initial auth state before the first frame is rendered.
   void initialize() {
-    bool _authResolved = false;
+    bool authResolved = false;
 
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      _authResolved = true;
+      authResolved = true;
       _onAuthStateChanged(user);
       if (user != null) {
         updatePresence(true);
+        FcmService().listenToForegroundMessages();
       }
     });
 
     // Safety timeout: if Firebase Auth stream hasn't fired in 5 seconds
     // (common on sideloaded iOS apps), force the user to the login screen.
     Future.delayed(const Duration(seconds: 5), () {
-      if (!_authResolved) {
+      if (!authResolved) {
         debugPrint(
           '[AuthService] Auth stream timeout — forcing unauthenticated',
         );
@@ -200,13 +202,13 @@ class AuthService extends ChangeNotifier {
               'updatedAt': FieldValue.serverTimestamp(),
             }, SetOptions(merge: true));
       } catch (e) {
-        debugPrint(
-          '[AuthService] Silently failed to sync email to Firestore: $e',
-        );
+        // Silently fail sync
       }
 
       await _handleSignedInUser(cred.user!);
       await updatePresence(true);
+      // Save FCM token for push notifications
+      FcmService().initForUser(cred.user!.uid).ignore();
       return true;
     } on FirebaseAuthException catch (e) {
       _setError(AuthException.fromFirebase(e));
@@ -324,6 +326,7 @@ class AuthService extends ChangeNotifier {
     try {
       if (firebaseUser != null) {
         await updatePresence(false);
+        FcmService().removeTokenForUser(firebaseUser!.uid).ignore();
       }
       await FirebaseAuth.instance.signOut();
     } on FirebaseAuthException catch (e) {
@@ -416,6 +419,8 @@ class AuthService extends ChangeNotifier {
       }
 
       await _handleSignedInUser(userCredential.user!);
+      // Save FCM token for push notifications
+      FcmService().initForUser(userCredential.user!.uid).ignore();
       return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'account-exists-with-different-credential') {
@@ -463,15 +468,18 @@ class AuthService extends ChangeNotifier {
     if (cached != null && cached.uid == user.uid) {
       _profile = cached;
       _setStatus(AuthStatus.authenticated);
+      FcmService().initForUser(user.uid).ignore(); // Initialize FCM token for cached user
       return;
     }
 
     _setLoading();
     try {
       await _fetchAndCacheProfile(user.uid);
+      FcmService().initForUser(user.uid).ignore(); // Initialize FCM token after fetch
     } catch (_) {
       // New user — profile not in Firestore yet.
       _setStatus(AuthStatus.authenticated);
+      FcmService().initForUser(user.uid).ignore(); // Initialize FCM token for new user
     }
   }
 

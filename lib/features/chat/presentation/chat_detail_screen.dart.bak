@@ -17,7 +17,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_config.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/chat/chat_service.dart';
+import '../../../core/chat/call_service.dart';
 import '../../../core/theme/app_colors.dart';
+import 'call_screen.dart';
 import 'widgets/profile_preview_dialog.dart';
 import 'widgets/asset_picker_bottom_sheet.dart';
 import 'dart:ui';
@@ -58,7 +60,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _isOtherUserBlocked = false;
   StreamSubscription? _blockSubscription;
 
-  // VoIP - For incoming calls (Removed logic)
+  // VoIP - For incoming calls
+  bool _isCallListenerSet = false;
   StreamSubscription? _msgSubscription;
 
   void _showPreview(BuildContext context, ProfileModel profile) {
@@ -67,6 +70,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       builder: (_) => ProfilePreviewDialog(
         profile: profile,
         onChatTap: () {},
+        onCallTap: () => _makeCall(false),
+        onVideoCallTap: () => _makeCall(true),
       ),
     );
   }
@@ -128,6 +133,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenForIncomingCalls();
       _initOtherUserInfo();
     });
   }
@@ -327,13 +333,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     maxWidth: MediaQuery.of(context).size.width * 0.75,
                   ),
                   decoration: BoxDecoration(
-                    color: isMine
-                        ? (theme.brightness == Brightness.dark
-                            ? const Color(0xFF005C4B)
-                            : const Color(0xFFE7FFDB))
-                        : (theme.brightness == Brightness.dark
-                            ? theme.colorScheme.surfaceContainerHighest
-                            : Colors.white),
+                    color: isMine ? const Color(0xFFE7FFDB) : Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(12),
                       topRight: const Radius.circular(12),
@@ -475,13 +475,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isMine
-                      ? (theme.brightness == Brightness.dark
-                          ? const Color(0xFF005C4B)
-                          : const Color(0xFFE7FFDB))
-                      : (theme.brightness == Brightness.dark
-                          ? theme.colorScheme.surfaceContainerHighest
-                          : Colors.white),
+                  color: isMine ? const Color(0xFFE7FFDB) : Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(20),
                     topRight: const Radius.circular(20),
@@ -505,7 +499,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       Text(
                         incomingLabel,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -517,11 +511,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       children: [
                         Text(
                           text,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 15,
-                            color: theme.brightness == Brightness.dark
-                                ? Colors.white
-                                : const Color(0xFF111B21),
+                            color: Color(0xFF111B21),
                           ),
                         ),
                         Row(
@@ -531,10 +523,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               timeStr,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: (theme.brightness == Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black)
-                                    .withValues(alpha: 0.45),
+                                color: Colors.black.withValues(alpha: 0.45),
                               ),
                             ),
                             if (isMine) ...[
@@ -662,70 +651,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (mounted) setState(() => _favoriteStickers = saved ?? []);
   }
 
-  Widget _buildReplyPreview(Map<String, dynamic> replyTo, bool isMine) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: (isMine
-                ? (theme.brightness == Brightness.dark ? Colors.black : Colors.white)
-                : theme.colorScheme.primaryContainer)
-            .withValues(
-          alpha: 0.2,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(
-            color: isMine
-                ? (theme.brightness == Brightness.dark
-                    ? Colors.white38
-                    : Colors.white70)
-                : theme.colorScheme.primary,
-            width: 3,
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  replyTo['senderName'] ??
-                      (replyTo['senderId'] ==
-                              context.read<AuthService>().firebaseUser?.uid
-                          ? 'Me'
-                          : 'User'),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isMine
-                        ? (theme.brightness == Brightness.dark
-                            ? Colors.white70
-                            : Colors.white)
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-                Text(
-                  replyTo['type'] == 'sticker' ? 'Sticker' : replyTo['text'],
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isMine
-                        ? (theme.brightness == Brightness.dark
-                            ? Colors.white54
-                            : Colors.white70)
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _toggleFavoriteSticker(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = List<String>.from(_favoriteStickers);
+    if (list.contains(url)) {
+      list.remove(url);
+    } else {
+      list.insert(0, url);
+    }
+    await prefs.setStringList('favorite_stickers', list);
+    if (mounted) setState(() => _favoriteStickers = list);
   }
 
   void _showRenameDialog({String? prefilledOriginalName}) {
@@ -822,17 +757,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildReactions(Map<String, dynamic> msg, bool isMine) {
-    final theme = Theme.of(context);
     final reactions = msg['reactions'] as Map? ?? {};
     if (reactions.isEmpty) return const SizedBox.shrink();
 
     // Group reactions by emoji
     final Map<String, int> counts = {};
-    for (final emoji in reactions.values) {
+    reactions.values.forEach((emoji) {
       if (emoji is String) {
         counts[emoji] = (counts[emoji] ?? 0) + 1;
       }
-    }
+    });
 
     return Padding(
       padding: const EdgeInsets.only(top: 4),
@@ -843,20 +777,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: (isMine
-                      ? (theme.brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.white)
-                      : theme.colorScheme.primaryContainer)
+              color: (isMine ? Colors.white : AppColors.primaryLight)
                   .withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: (isMine
-                        ? (theme.brightness == Brightness.dark
-                            ? Colors.white38
-                            : Colors.white70)
-                        : theme.colorScheme.primary)
-                    .withValues(
+                color: (isMine ? Colors.white70 : AppColors.primary).withValues(
                   alpha: 0.3,
                 ),
                 width: 0.5,
@@ -873,11 +798,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: isMine
-                          ? (theme.brightness == Brightness.dark
-                              ? Colors.white70
-                              : Colors.white)
-                          : theme.colorScheme.primary,
+                      color: isMine ? Colors.white : AppColors.primary,
                     ),
                   ),
                 ],
@@ -900,7 +821,122 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   // ── VoIP Logic ─────────────────────────────────────────────────────────────
 
+  Future<void> _makeCall(bool isVideo) async {
+    final callService = context.read<CallService>();
+    final authService = context.read<AuthService>();
+    final currentUid = authService.firebaseUser?.uid ?? '';
+    final currentEmail = authService.firebaseUser?.email ?? '';
+    final currentName =
+        authService.profile?.name ??
+        authService.firebaseUser?.displayName ??
+        currentEmail.split('@')[0];
 
+    try {
+      final chatDoc = await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .get();
+
+      final participants = List<String>.from(
+        chatDoc.data()?['participants'] ?? [],
+      );
+      final otherUid = participants.firstWhere(
+        (id) => id != currentUid,
+        orElse: () => '',
+      );
+
+      if (otherUid.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cannot find other participant')),
+          );
+        }
+        return;
+      }
+
+      final call = CallModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        callerId: currentUid,
+        callerName: currentName,
+        receiverId: otherUid,
+        receiverName: widget.contactName,
+        channelId: widget.chatId,
+        isVideo: isVideo,
+        status: CallStatus.dialling,
+        timestamp: DateTime.now(),
+      );
+
+      await callService.makeCall(call);
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CallScreen(call: call, isIncoming: false),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to initiate call: $e')));
+      }
+    }
+  }
+
+  void _listenForIncomingCalls() {
+    if (_isCallListenerSet) return;
+    _isCallListenerSet = true;
+
+    final authService = context.read<AuthService>();
+    final currentUid = authService.firebaseUser?.uid ?? '';
+    if (currentUid.isEmpty) return;
+
+    final callService = context.read<CallService>();
+    callService.callStream(currentUid).listen((call) {
+      if (call != null && call.status == CallStatus.dialling && mounted) {
+        _showIncomingCallDialog(call);
+      }
+    });
+  }
+
+  void _showIncomingCallDialog(CallModel call) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text('Incoming ${call.isVideo ? 'Video' : 'Voice'} Call'),
+        content: Text('${call.callerName} is calling you...'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.call_end, color: Colors.red),
+            onPressed: () {
+              context.read<CallService>().updateCallStatus(
+                call.id,
+                CallStatus.rejected,
+              );
+              Navigator.pop(ctx);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.call, color: Colors.green),
+            onPressed: () {
+              context.read<CallService>().updateCallStatus(
+                call.id,
+                CallStatus.ongoing,
+              );
+              Navigator.pop(ctx);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CallScreen(call: call, isIncoming: true),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -1280,6 +1316,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   void _showMessageOptions(Map<String, dynamic> msg, {Offset? position}) {
     final currentUid = context.read<AuthService>().firebaseUser?.uid ?? '';
+    final isMine = msg['senderId'] == currentUid;
+    final type = msg['type'] as String? ?? 'text';
+    final isSticker = type == 'sticker';
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -1321,18 +1360,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 left: left,
                 child: RepaintBoundary(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.75),
+                      color: Colors.white.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(40),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        width: 1.5,
-                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 25,
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 20,
                           spreadRadius: 2,
                         ),
                       ],
@@ -1367,7 +1402,238 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  // ── Files Logic ──────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    return _ChatDetailScreenContent(
+      chatId: widget.chatId,
+      contactName: widget.contactName,
+      nickname: _nickname,
+      onResolvedName: _resolvedName,
+      buildMessageItem: _buildMessageItem,
+      onBack: widget.onBack,
+      msgCtrl: _msgCtrl,
+      focusNode: _focusNode,
+      onSendMessage: _sendMessage,
+      onAttachment: _showAttachmentMenu,
+      isUploading: _isUploading,
+      onRecording: _startRecording,
+      onStopRecording: _stopRecording,
+      onCancelRecording: _cancelRecording,
+      isRecording: _isRecording,
+      recordingDuration: _recordingDuration,
+      showEmojiPicker: _showEmojiPicker,
+      toggleEmojiPicker: () => setState(() => _showEmojiPicker = !_showEmojiPicker),
+      showStickerPicker: _showStickerPicker,
+      toggleStickerPicker: () => setState(() => _showStickerPicker = !_showStickerPicker),
+      replyingTo: _replyingTo,
+      onCancelReply: () => setState(() => _replyingTo = null),
+      onMakeCall: _makeCall,
+    );
+  }
+}
+
+class _ChatDetailScreenContent extends StatelessWidget {
+  final String chatId;
+  final String contactName;
+  final String? nickname;
+  final String Function(ProfileModel? profile, bool isWaiting, {String? currentUid, String? currentUserName}) onResolvedName;
+  final Widget Function(Map<String, dynamic> msg, String currentUid) buildMessageItem;
+  final VoidCallback? onBack;
+  final TextEditingController msgCtrl;
+  final FocusNode focusNode;
+  final VoidCallback onSendMessage;
+  final VoidCallback onAttachment;
+  final bool isUploading;
+  final VoidCallback onRecording;
+  final VoidCallback onStopRecording;
+  final VoidCallback onCancelRecording;
+  final bool isRecording;
+  final String recordingDuration;
+  final bool showEmojiPicker;
+  final VoidCallback toggleEmojiPicker;
+  final bool showStickerPicker;
+  final VoidCallback toggleStickerPicker;
+  final Map<String, dynamic>? replyingTo;
+  final VoidCallback onCancelReply;
+  final Function(bool isVideo) onMakeCall;
+
+  const _ChatDetailScreenContent({
+    required this.chatId,
+    required this.contactName,
+    this.nickname,
+    required this.onResolvedName,
+    required this.buildMessageItem,
+    this.onBack,
+    required this.msgCtrl,
+    required this.focusNode,
+    required this.onSendMessage,
+    required this.onAttachment,
+    required this.isUploading,
+    required this.onRecording,
+    required this.onStopRecording,
+    required this.onCancelRecording,
+    required this.isRecording,
+    required this.recordingDuration,
+    required this.showEmojiPicker,
+    required this.toggleEmojiPicker,
+    required this.showStickerPicker,
+    required this.toggleStickerPicker,
+    this.replyingTo,
+    required this.onCancelReply,
+    required this.onMakeCall,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (didPop) return;
+        if (onBack != null) {
+          onBack!();
+        } else {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFECE5DD),
+        appBar: AppBar(
+          titleSpacing: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (onBack != null) {
+                onBack!();
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          title: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey[300],
+                child: const Icon(Icons.person, color: Colors.white),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nickname ?? contactName,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const Text(
+                      'online',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(icon: const Icon(Icons.videocam), onPressed: () {}),
+            IconButton(icon: const Icon(Icons.call), onPressed: () {}),
+            IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: context.read<ChatService>().getMessagesStream(chatId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final messages = snapshot.data ?? [];
+                  final currentUid = context.read<AuthService>().firebaseUser?.uid ?? '';
+                  
+                  return ListView.builder(
+                    reverse: true, // Common for chat
+                    padding: const EdgeInsets.all(8),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) => buildMessageItem(messages[index], currentUid),
+                  );
+                },
+              ),
+            ),
+            // Message Input bar would go here
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedEmoji extends StatefulWidget {
+  final String emoji;
+  final int delay;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _AnimatedEmoji({
+    required this.emoji,
+    required this.delay,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedEmoji> createState() => _AnimatedEmojiState();
+}
+
+class _AnimatedEmojiState extends State<_AnimatedEmoji> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _scale = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 1.0, curve: Curves.elasticOut),
+    );
+
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: widget.isSelected ? Colors.blue.withValues(alpha: 0.1) : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            widget.emoji,
+            style: const TextStyle(fontSize: 24),
+          ),
+        ),
+      ),
+    );
+  }
 
   // ── Files Logic ──────────────────────────────────────────────────────────
 
@@ -1483,15 +1749,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _showAttachmentMenu() {
-    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1594,7 +1859,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
-                    color: theme.dividerColor,
+                    color: AppColors.divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1631,14 +1896,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   Text(
                     realName,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 const SizedBox(height: 4),
                 Text(
                   email,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -1909,6 +2174,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   },
                 ),
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.call_rounded, color: Colors.white),
+                    tooltip: AppLocalizations.of(context)!.chatVoiceCall,
+                    onPressed: () => _makeCall(false),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.videocam_rounded, color: Colors.white),
+                    tooltip: AppLocalizations.of(context)!.chatVideoCall,
+                    onPressed: () => _makeCall(true),
+                  ),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
                     onSelected: (value) {
@@ -2002,16 +2277,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: theme.brightness == Brightness.dark
-                  ? [
-                      const Color(0xFF0B141A),
-                      const Color(0xFF0B141A),
-                    ]
-                  : [
-                      AppColors.primarySoft.withValues(alpha: 0.5),
-                      Colors.white,
-                      AppColors.primarySoft.withValues(alpha: 0.3),
-                    ],
+              colors: [
+                AppColors.primarySoft.withValues(alpha: 0.5),
+                Colors.white,
+                AppColors.primarySoft.withValues(alpha: 0.3),
+              ],
             ),
           ),
           child: Column(
@@ -2043,15 +2313,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               // ── Input Bar ──────────────────────────────────────────────────
               Container(
                 decoration: BoxDecoration(
-                  color: theme.brightness == Brightness.dark
-                      ? const Color(0xFF1F2C34).withValues(alpha: 0.9)
-                      : Colors.white.withValues(alpha: 0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   border: Border(
                     top: BorderSide(
-                      color: (theme.brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black)
-                          .withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       width: 0.5,
                     ),
                   ),
@@ -2166,9 +2431,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 Expanded(
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: theme.brightness == Brightness.dark
-                                          ? const Color(0xFF2A3942)
-                                          : Colors.white,
+                                      color: Colors.white,
                                       borderRadius: BorderRadius.circular(24),
                                     ),
                                     child: TextField(
@@ -2178,11 +2441,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                       textInputAction: TextInputAction.newline,
                                       minLines: 1,
                                       maxLines: 5,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 15,
-                                        color: theme.brightness == Brightness.dark
-                                            ? Colors.white
-                                            : const Color(0xFF111B21),
+                                        color: Color(0xFF111B21),
                                       ),
                                       decoration: InputDecoration(
                                         hintText: 'Type a message',
@@ -2437,12 +2698,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        child: Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: 26),
+        child: Icon(icon, color: const Color(0xFF8696A0), size: 26),
       ),
     );
   }
@@ -2487,80 +2747,13 @@ class _AttachmentOption extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Color(0xFF3B4A54),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AnimatedEmoji extends StatefulWidget {
-  final String emoji;
-  final int delay;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _AnimatedEmoji({
-    required this.emoji,
-    required this.delay,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  State<_AnimatedEmoji> createState() => _AnimatedEmojiState();
-}
-
-class _AnimatedEmojiState extends State<_AnimatedEmoji> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-
-    _scale = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 1.0, curve: Curves.elasticOut),
-    );
-
-    Future.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _scale,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: widget.isSelected ? Colors.blue.withValues(alpha: 0.1) : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: Text(
-            widget.emoji,
-            style: const TextStyle(fontSize: 24),
-          ),
-        ),
       ),
     );
   }

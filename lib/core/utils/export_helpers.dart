@@ -36,9 +36,11 @@ class ExportHelpers {
       }
 
       if (file != null && await file.exists()) {
-        await Share.shareXFiles([
-          XFile(file.path),
-        ], text: 'Here is the generated $format report for $period.');
+        // ignore: deprecated_member_use
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Here is the generated $format report for $period.',
+        );
       }
     } catch (e) {
       debugPrint('Error exporting $format: $e');

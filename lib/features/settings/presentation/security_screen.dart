@@ -31,7 +31,7 @@ class SecurityScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l.cancel ?? 'Cancel'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () async {

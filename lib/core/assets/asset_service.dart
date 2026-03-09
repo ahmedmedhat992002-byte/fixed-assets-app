@@ -52,7 +52,7 @@ class AssetService extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        print('DEBUG: User is not authenticated');
+        debugPrint('DEBUG: User is not authenticated');
         throw Exception('User is not authenticated');
       }
 
@@ -68,7 +68,7 @@ class AssetService extends ChangeNotifier {
       payload['category'] = asset.category.toLowerCase();
       payload['status'] = asset.status.toLowerCase();
 
-      print(
+      debugPrint(
         'DEBUG: Starting Firestore write for asset ${asset.id} under user ${user.uid}',
       );
 
@@ -76,7 +76,7 @@ class AssetService extends ChangeNotifier {
       path = 'users/${user.uid}/assets';
       await _firestore.collection(path).doc(asset.id).set(payload);
 
-      print(
+      debugPrint(
         'DEBUG: Successfully wrote asset ${asset.id} to Firestore at $path',
       );
 
@@ -103,11 +103,11 @@ class AssetService extends ChangeNotifier {
       return true;
     } on FirebaseException catch (e) {
       if (kDebugMode) {
-        print(
+        debugPrint(
           'DEBUG: [AssetService] Firestore write failed: [${e.code}] ${e.message}',
         );
-        print('DEBUG: [AssetService] Targeted Path: $path');
-        print('DEBUG: [AssetService] Payload: $payload');
+        debugPrint('DEBUG: [AssetService] Targeted Path: $path');
+        debugPrint('DEBUG: [AssetService] Payload: $payload');
       }
       if (e.code == 'permission-denied') {
         _lastError = 'You do not have permission to add assets.';
@@ -119,7 +119,7 @@ class AssetService extends ChangeNotifier {
       _lastError = 'Error adding asset: $e';
       return false;
     } finally {
-      print('DEBUG: addAsset operation completed, setting loading to false');
+      debugPrint('DEBUG: addAsset operation completed, setting loading to false');
       _setLoading(false);
     }
   }
@@ -147,7 +147,7 @@ class AssetService extends ChangeNotifier {
           .doc(asset.id)
           .update(payload);
 
-      print('DEBUG: Successfully updated asset ${asset.id}');
+      debugPrint('DEBUG: Successfully updated asset ${asset.id}');
 
       // Record Notification
       if (_notificationService != null) {
@@ -191,7 +191,7 @@ class AssetService extends ChangeNotifier {
           .doc(assetId)
           .delete();
 
-      print('DEBUG: Successfully deleted asset $assetId');
+      debugPrint('DEBUG: Successfully deleted asset $assetId');
 
       // Record transaction (Disposal)
       if (_transactionService != null) {
@@ -244,7 +244,7 @@ class AssetService extends ChangeNotifier {
       }
 
       await batch.commit();
-      print('DEBUG: Successfully deleted all ${snapshot.docs.length} assets');
+      debugPrint('DEBUG: Successfully deleted all ${snapshot.docs.length} assets');
       return true;
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
@@ -295,7 +295,7 @@ class AssetService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('DEBUG: Error in findAssetByNameOrId: $e');
+      debugPrint('DEBUG: Error in findAssetByNameOrId: $e');
     }
     return null;
   }
@@ -321,12 +321,12 @@ class AssetService extends ChangeNotifier {
             'updatedAtMs': now,
           });
 
-      print(
+      debugPrint(
         'DEBUG: Updated location for asset $assetId: ($latitude, $longitude)',
       );
       return true;
     } catch (e) {
-      print('DEBUG: Error updating asset location: $e');
+      debugPrint('DEBUG: Error updating asset location: $e');
       return false;
     }
   }

@@ -437,7 +437,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Padding(
                           padding: EdgeInsets.all(24.0),
-                          child: const Center(child: SizedBox.shrink()),
+                          child: Center(child: SizedBox.shrink()),
                         );
                       }
                       if (snapshot.hasError) {
@@ -558,7 +558,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Padding(
                       padding: EdgeInsets.all(24.0),
-                      child: const Center(child: SizedBox.shrink()),
+                      child: Center(child: SizedBox.shrink()),
                     );
                   }
                   if (snapshot.hasError) {

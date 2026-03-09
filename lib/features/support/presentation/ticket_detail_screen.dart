@@ -119,7 +119,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                       child: SizedBox(
                         width: 20,
                         height: 20,
-                        child: const SizedBox.shrink(),
+                        child: SizedBox.shrink(),
                       ),
                     )
                   : DropdownButtonHideUnderline(

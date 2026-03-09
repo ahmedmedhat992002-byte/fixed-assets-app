@@ -324,7 +324,7 @@ class _BackupSyncScreenState extends State<BackupSyncScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: const SizedBox.shrink(),
+                      child: SizedBox.shrink(),
                     )
                   : const Icon(Icons.cloud_upload_rounded),
               label: Text(l.backupBtnBackupNow),

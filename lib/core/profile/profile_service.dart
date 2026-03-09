@@ -84,7 +84,7 @@ class ProfileService {
     try {
       final String fileExt = fileName.split('.').last;
       final String path =
-          '$uid/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+          'profiles/$uid/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
       await _supabase.storage
           .from(SupabaseConfig.profilesBucket)

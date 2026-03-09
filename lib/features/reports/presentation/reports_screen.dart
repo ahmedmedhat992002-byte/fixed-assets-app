@@ -768,7 +768,7 @@ class _RecentReportRow extends StatelessWidget {
               child: const SizedBox(
                 width: 22,
                 height: 22,
-                child: const SizedBox.shrink(),
+                child: SizedBox.shrink(),
               ),
             )
           else ...[
