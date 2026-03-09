@@ -45,6 +45,19 @@ class FcmService {
       },
     );
 
+    // Create the channel on Android
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(const AndroidNotificationChannel(
+            'high_importance_channel',
+            'High Importance Notifications',
+            description: 'This channel is used for important notifications.',
+            importance: Importance.max,
+          ));
+    }
+
     _isLocalNotificationsInitialized = true;
   }
 

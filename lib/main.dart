@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:assets_management/app/app.dart';
 import 'package:assets_management/core/auth/auth_service.dart';
@@ -26,9 +27,45 @@ const _iosOptions = FirebaseOptions(
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `initializeApp` before using them.
   await Firebase.initializeApp();
+  
+  // If the message has a notification or data, we can show it via local notifications.
+  // This is especially important for "data-only" messages or to ensure 
+  // the high_importance_channel is respected.
+  final notification = message.notification;
+  final data = message.data;
+
+  if (notification != null || data.isNotEmpty) {
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+        
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+    
+    await flutterLocalNotificationsPlugin.initialize(
+      settings: initializationSettings,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      id: notification?.hashCode ?? 0,
+      title: notification?.title ?? data['title'] ?? 'New Message',
+      body: notification?.body ?? data['body'] ?? '',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          channelDescription: 'This channel is used for important notifications.',
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+      ),
+    );
+  }
+  
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
