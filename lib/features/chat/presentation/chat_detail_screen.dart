@@ -56,7 +56,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _showStickerPicker = false;
 
   // Sticker Actions
-  Map<String, dynamic>? _replyingTo;
+  final ValueNotifier<Map<String, dynamic>?> _replyingTo = ValueNotifier(null);
   List<String> _favoriteStickers = [];
   String? _otherUid;
   bool _isOtherUserBlocked = false;
@@ -232,7 +232,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         direction: DismissDirection.startToEnd,
         confirmDismiss: (direction) async {
           if (direction == DismissDirection.startToEnd) {
-            setState(() => _replyingTo = msg);
+            _replyingTo.value = msg;
             _focusNode.requestFocus();
           }
           return false;
@@ -316,7 +316,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         direction: DismissDirection.startToEnd,
         confirmDismiss: (direction) async {
           if (direction == DismissDirection.startToEnd) {
-            setState(() => _replyingTo = msg);
+            _replyingTo.value = msg;
             _focusNode.requestFocus();
           }
           return false;
@@ -374,7 +374,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         direction: DismissDirection.startToEnd,
         confirmDismiss: (direction) async {
           if (direction == DismissDirection.startToEnd) {
-            setState(() => _replyingTo = msg);
+            _replyingTo.value = msg;
             _focusNode.requestFocus();
           }
           return false;
@@ -540,7 +540,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       direction: DismissDirection.startToEnd,
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          setState(() => _replyingTo = msg);
+          _replyingTo.value = msg;
           _focusNode.requestFocus();
         }
         return false;
@@ -1293,10 +1293,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         text: 'Sent a voice note',
         fileUrl: downloadUrl,
         messageType: 'voice',
-        replyTo: _replyingTo,
+        replyTo: _replyingTo.value,
       );
 
-      if (mounted) setState(() => _replyingTo = null);
+      if (mounted) _replyingTo.value = null;
     } catch (e) {
       debugPrint('Voice Note CRITICAL ERROR: $e');
       if (mounted) {
@@ -1348,9 +1348,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         senderName: name,
         senderEmail: email,
         text: text,
-        replyTo: _replyingTo,
+        replyTo: _replyingTo.value,
       );
-      if (mounted) setState(() => _replyingTo = null);
+      if (mounted) _replyingTo.value = null;
     } catch (e) {
       if (mounted) {
         if (_msgCtrl.text.isEmpty) _msgCtrl.text = text; // Restore text on failure
@@ -1384,13 +1384,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         text: 'Sent a sticker',
         fileUrl: url,
         messageType: 'sticker',
-        replyTo: _replyingTo,
+        replyTo: _replyingTo.value,
       );
       if (mounted) {
         setState(() {
           _showStickerPicker = false;
-          _replyingTo = null;
         });
+        _replyingTo.value = null;
       }
     } catch (e) {
       if (mounted) {
@@ -1458,9 +1458,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         text: 'Sent a sticker',
         fileUrl: fileUrl,
         messageType: 'sticker',
-        replyTo: _replyingTo,
+        replyTo: _replyingTo.value,
       );
-      if (mounted) setState(() => _replyingTo = null);
+      if (mounted) _replyingTo.value = null;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1585,7 +1585,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               onTap: () {
                                 Navigator.pop(ctx);
                                 setState(() {
-                                  _replyingTo = msg;
+                                  _replyingTo.value = msg;
                                   _focusNode.requestFocus();
                                 });
                               },
@@ -1776,11 +1776,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         fileUrl: asset.id,
         fileName: asset.name,
         fileType: asset.category,
-        replyTo: _replyingTo,
+        replyTo: _replyingTo.value,
       );
 
       if (!mounted) return;
-      setState(() => _replyingTo = null);
+      _replyingTo.value = null;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Asset shared')));
@@ -2373,55 +2373,60 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (_replyingTo != null)
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border(
-                                  left: BorderSide(color: theme.colorScheme.primary, width: 4),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Replying to ${_replyingTo!['senderName']}',
-                                          style: theme.textTheme.labelSmall?.copyWith(
-                                            color: theme.colorScheme.primary,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          _replyingTo!['type'] == 'sticker' ? 'Sticker' : _replyingTo!['text'],
-                                          style: theme.textTheme.bodySmall,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
+                          ValueListenableBuilder<Map<String, dynamic>?>(
+                            valueListenable: _replyingTo,
+                            builder: (context, replyingTo, child) {
+                              if (replyingTo == null) return const SizedBox.shrink();
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border(
+                                    left: BorderSide(color: theme.colorScheme.primary, width: 4),
                                   ),
-                                  if (_replyingTo!['type'] == 'sticker')
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Image.network(_replyingTo!['fileUrl'], width: 40, height: 40, fit: BoxFit.cover),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Replying to ${replyingTo['senderName']}',
+                                            style: theme.textTheme.labelSmall?.copyWith(
+                                              color: theme.colorScheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            replyingTo['type'] == 'sticker' ? 'Sticker' : replyingTo['text'] ?? '',
+                                            style: theme.textTheme.bodySmall,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close, size: 18),
-                                    onPressed: () => setState(() => _replyingTo = null),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                    if (replyingTo['type'] == 'sticker')
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 8),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Image.network(replyingTo['fileUrl'], width: 40, height: 40, fit: BoxFit.cover),
+                                        ),
+                                      ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () => _replyingTo.value = null,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                             // ── Recording UI ──────────────────────────────────────────────
                             if (_isRecording) _buildRecordingUI(theme),
 
