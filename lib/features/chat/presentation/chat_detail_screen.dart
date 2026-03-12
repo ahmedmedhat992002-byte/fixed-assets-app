@@ -51,7 +51,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _focusNode = FocusNode();
 
-  bool _isUploading = false;
+  final ValueNotifier<bool> _isUploading = ValueNotifier<bool>(false);
   bool _showEmojiPicker = false;
   bool _showStickerPicker = false;
 
@@ -1164,7 +1164,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _startRecording() async {
-    if (_isRecording || _isUploading) return;
+    if (_isRecording || _isUploading.value) return;
     try {
       if (_hasPermission || await _audioRecorder.hasPermission()) {
         _hasPermission = true;
@@ -1182,6 +1182,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
         setState(() {
           _isRecording = true;
+          _isUploading.value = true;
           _isSwipeToCancel = false;
           _recordingStartTime = DateTime.now();
           _isLocked = false;
@@ -1238,9 +1239,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     setState(() {
       _isRecording = false;
-      _isUploading = true;
       _isLocked = false;
     });
+    _isUploading.value = true;
 
     try {
       debugPrint('Voice Note: stopping recorder, path result: $path');
@@ -1304,7 +1305,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) _isUploading.value = false;
     }
   }
 
@@ -1338,7 +1339,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         authService.firebaseUser?.displayName ??
         (email.isNotEmpty ? email.split('@')[0] : '');
 
-    setState(() => _isUploading = true);
+    _isUploading.value = true;
     _msgCtrl.clear();
 
     try {
@@ -1359,7 +1360,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
       }
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) _isUploading.value = false;
     }
   }
 
@@ -1375,7 +1376,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         authService.firebaseUser?.displayName ??
         (email.isNotEmpty ? email.split('@')[0] : '');
 
-    setState(() => _isUploading = true);
+    _isUploading.value = true;
 
     try {
       await chatService.sendMessage(
@@ -1401,7 +1402,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ).showSnackBar(SnackBar(content: Text('Failed to send sticker: $e')));
       }
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) _isUploading.value = false;
     }
   }
 
@@ -1426,7 +1427,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       final platformFile = result.files.first;
       if (platformFile.path == null) return;
 
-      setState(() => _isUploading = true);
+      _isUploading.value = true;
 
       // 1. Process Image (Resize to 512x512)
       final bytes = await File(platformFile.path!).readAsBytes();
@@ -1476,7 +1477,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ).showSnackBar(SnackBar(content: Text('Failed to create sticker: $e')));
       }
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) _isUploading.value = false;
     }
   }
 
@@ -1711,7 +1712,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       final fileName = platformFile.name;
       final fileType = platformFile.extension ?? 'file';
 
-      setState(() => _isUploading = true);
+      _isUploading.value = true;
 
       final fileUrl = await chatService.uploadFile(
         widget.chatId,
@@ -1742,7 +1743,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ).showSnackBar(SnackBar(content: Text('Failed to upload file: $e')));
       }
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) _isUploading.value = false;
     }
   }
 
@@ -1766,7 +1767,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         (email.isNotEmpty ? email.split('@')[0] : '');
 
     try {
-      setState(() => _isUploading = true);
+      _isUploading.value = true;
 
       await chatService.sendMessage(
         chatId: widget.chatId,
@@ -1792,7 +1793,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to share asset: $e')));
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) _isUploading.value = false;
     }
   }
 
@@ -2446,24 +2447,29 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                         color: theme.brightness == Brightness.dark ? const Color(0xFF2A3942) : Colors.white,
                                         borderRadius: BorderRadius.circular(24),
                                       ),
-                                      child: TextField(
-                                        controller: _msgCtrl,
-                                        focusNode: _focusNode,
-                                        enabled: !_isUploading,
-                                        textInputAction: TextInputAction.newline,
-                                        minLines: 1,
-                                        maxLines: 5,
-                                        onChanged: (text) {},  // No setState - ValueListenableBuilder handles the rebuild
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111B21),
-                                        ),
-                                        decoration: const InputDecoration(
-                                          hintText: 'Type a message',
-                                          hintStyle: TextStyle(color: Color(0xFF8696A0), fontSize: 15),
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                          border: InputBorder.none,
-                                        ),
+                                      child: ValueListenableBuilder<bool>(
+                                        valueListenable: _isUploading,
+                                        builder: (context, isUploading, child) {
+                                          return TextField(
+                                            controller: _msgCtrl,
+                                            focusNode: _focusNode,
+                                            enabled: !isUploading,
+                                            textInputAction: TextInputAction.newline,
+                                            minLines: 1,
+                                            maxLines: 5,
+                                            onChanged: (text) {},  // No setState - ValueListenableBuilder handles the rebuild
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111B21),
+                                            ),
+                                            decoration: const InputDecoration(
+                                              hintText: 'Type a message',
+                                              hintStyle: TextStyle(color: Color(0xFF8696A0), fontSize: 15),
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                              border: InputBorder.none,
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ),
