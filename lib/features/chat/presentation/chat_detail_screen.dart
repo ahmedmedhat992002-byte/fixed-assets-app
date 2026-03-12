@@ -2453,7 +2453,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                         textInputAction: TextInputAction.newline,
                                         minLines: 1,
                                         maxLines: 5,
-                                        onChanged: (text) => setState(() {}),
+                                        onChanged: (text) {},  // No setState - ValueListenableBuilder handles the rebuild
                                         style: TextStyle(
                                           fontSize: 15,
                                           color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111B21),
@@ -2483,55 +2483,61 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                   ),
                                 ],
                                 const SizedBox(width: 8),
-                                // Send / Record Button
-                                if (_msgCtrl.text.trim().isNotEmpty)
-                                  GestureDetector(
-                                    onTap: _sendMessage,
-                                    child: Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle,
+                                // Send / Record Button — uses ValueListenableBuilder to avoid full rebuilds
+                                ValueListenableBuilder<TextEditingValue>(
+                                  valueListenable: _msgCtrl,
+                                  builder: (context, value, child) {
+                                    final hasText = value.text.trim().isNotEmpty;
+                                    if (hasText) {
+                                      return GestureDetector(
+                                        onTap: _sendMessage,
+                                        child: Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
+                                        ),
+                                      );
+                                    }
+                                    return GestureDetector(
+                                      onLongPressStart: (_) => _startRecording(),
+                                      onLongPressEnd: (_) => _isLocked ? null : _stopRecording(),
+                                      onLongPressMoveUpdate: (details) {
+                                        if (!_isRecording || _isLocked) return;
+                                        if (details.localOffsetFromOrigin.dx < -100) {
+                                          _isSwipeToCancel = true;
+                                          _cancelRecording();
+                                        } else if (details.localOffsetFromOrigin.dy < -100) {
+                                          setState(() => _isLocked = true);
+                                          HapticFeedback.mediumImpact();
+                                        }
+                                      },
+                                      child: Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: _isRecording ? Colors.red : AppColors.primary,
+                                          shape: BoxShape.circle,
+                                          boxShadow: _isRecording ? [
+                                            BoxShadow(
+                                              color: Colors.red.withValues(alpha: 0.3),
+                                              blurRadius: 12,
+                                              spreadRadius: 2,
+                                            )
+                                          ] : null,
+                                        ),
+                                        child: Icon(
+                                          _isRecording ? (_isLocked ? Icons.send_rounded : Icons.mic_rounded) : Icons.mic_rounded,
+                                          color: Colors.white,
+                                          size: 24,
+                                        ),
                                       ),
-                                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
-                                    ),
-                                  )
-                                else
-                                  GestureDetector(
-                                    onLongPressStart: (_) => _startRecording(),
-                                    onLongPressEnd: (_) => _isLocked ? null : _stopRecording(),
-                                    onLongPressMoveUpdate: (details) {
-                                      if (!_isRecording || _isLocked) return;
-                                      if (details.localOffsetFromOrigin.dx < -100) {
-                                        _isSwipeToCancel = true;
-                                        _cancelRecording();
-                                      } else if (details.localOffsetFromOrigin.dy < -100) {
-                                        setState(() => _isLocked = true);
-                                        HapticFeedback.mediumImpact();
-                                      }
-                                    },
-                                    child: Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: _isRecording ? Colors.red : AppColors.primary,
-                                        shape: BoxShape.circle,
-                                        boxShadow: _isRecording ? [
-                                          BoxShadow(
-                                            color: Colors.red.withValues(alpha: 0.3),
-                                            blurRadius: 12,
-                                            spreadRadius: 2,
-                                          )
-                                        ] : null,
-                                      ),
-                                      child: Icon(
-                                        _isRecording ? (_isLocked ? Icons.send_rounded : Icons.mic_rounded) : Icons.mic_rounded,
-                                        color: Colors.white,
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                         ],
