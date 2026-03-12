@@ -36,11 +36,11 @@ class AssetLocalAdapter extends TypeAdapter<AssetLocal> {
       salvageValue: fields[12] as double?,
       purchaseDateMs: fields[13] as int?,
       warrantyExpiryMs: fields[17] as int?,
+      latitude: fields[20] as double?,
+      longitude: fields[21] as double?,
+      lastScannedAtMs: fields[22] as int?,
       isDirty: fields[15] as bool,
-    )
-      ..latitude = fields[20] as double?
-      ..longitude = fields[21] as double?
-      ..lastScannedAtMs = fields[22] as int?;
+    );
   }
 
   @override

@@ -24,12 +24,12 @@ class RegistrationCompleteScreen extends StatelessWidget {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_rounded,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     size: 64,
                   ),
                 ),
@@ -39,7 +39,7 @@ class RegistrationCompleteScreen extends StatelessWidget {
                 'Account Created!',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -48,14 +48,14 @@ class RegistrationCompleteScreen extends StatelessWidget {
                 'Your WorldAssets account has been created successfully. You can now log in and start managing your assets.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                   height: 1.6,
                 ),
               ),
               const Spacer(),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                   foregroundColor: cs.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

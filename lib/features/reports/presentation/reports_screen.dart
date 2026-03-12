@@ -125,7 +125,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               duration: const Duration(seconds: 5),
               action: SnackBarAction(
                 label: 'OPEN',
-                textColor: Colors.white,
+                textColor: Theme.of(context).colorScheme.onPrimary,
                 onPressed: () {
                   OpenFile.open(exportedFile!.path);
                 },
@@ -486,7 +486,7 @@ class _ReportCardWidget extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -719,9 +719,9 @@ class _RecentReportRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),

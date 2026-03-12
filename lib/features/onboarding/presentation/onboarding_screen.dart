@@ -105,13 +105,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Container(
                           height: 220,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: theme.colorScheme.onPrimary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(32),
                           ),
                           child: Icon(
                             page.image,
                             size: 120,
-                            color: Colors.white,
+                            color: theme.colorScheme.onPrimary,
                           ),
                         ),
                         const Spacer(),
@@ -119,7 +119,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           page.title,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineMedium?.copyWith(
-                            color: Colors.white,
+                            color: theme.colorScheme.onPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -128,7 +128,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           page.subtitle,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                           ),
                         ),
                         const SizedBox(height: 40),
@@ -156,8 +156,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             height: 10,
                             decoration: BoxDecoration(
                               color: i == index
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.4),
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onPrimary.withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(24),
                             ),
                           ),
@@ -175,8 +175,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: ElevatedButton(
                           onPressed: _handleNext,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.textPrimary,
+                            backgroundColor: theme.colorScheme.onPrimary,
+                            foregroundColor: theme.colorScheme.primary,
                             textStyle: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),

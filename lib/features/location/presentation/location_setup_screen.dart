@@ -27,9 +27,9 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
       builder: (context) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).canvasColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Stack(
             children: [
@@ -123,11 +123,11 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                 top: 16,
                 left: 16,
                 child: CircleAvatar(
-                  backgroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).cardColor,
                   child: IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                       size: 20,
                     ),
                     onPressed: () => Navigator.pop(context),
@@ -140,9 +140,9 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                 bottom: 240,
                 right: 16,
                 child: CircleAvatar(
-                  backgroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).cardColor,
                   child: IconButton(
-                    icon: const Icon(Icons.my_location, color: Colors.black87),
+                    icon: Icon(Icons.my_location, color: Theme.of(context).colorScheme.onSurface),
                     onPressed: () {},
                   ),
                 ),
@@ -153,12 +153,12 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                 alignment: Alignment.bottomCenter,
                 child: Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(24),
                     ),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 10,
@@ -203,10 +203,10 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Use this location',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -236,14 +236,14 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back,
-            color: Colors.black87,
+            color: Theme.of(context).colorScheme.onSurface,
           ), // Back arrow in design
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -301,7 +301,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.my_location, color: Colors.black87),
+                    Icon(Icons.my_location, color: Theme.of(context).colorScheme.onSurface),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -338,11 +338,11 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: Theme.of(context).shadowColor.withValues(alpha: 0.04),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -476,9 +476,9 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[300]!),
+                              border: Border.all(color: Theme.of(context).dividerColor),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
@@ -526,9 +526,9 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                           _searchController.clear();
                         });
                       },
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close_rounded,
-                        color: Colors.black54,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -553,8 +553,8 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF223BAA),
                 disabledBackgroundColor: Colors.grey[300],
-                disabledForegroundColor: Colors.white,
-                foregroundColor: Colors.white,
+                disabledForegroundColor: Theme.of(context).colorScheme.onPrimary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

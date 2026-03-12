@@ -57,7 +57,14 @@
 		<string>We need your location to attach location data to reports and assets.</string>
 		<key>NSLocationAlwaysUsageDescription</key>
 		<string>We need your location for real-time tracking of assets.</string>
-		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>We need your location for real-time tracking of assets.</string>
+		<key>NSFaceIDUsageDescription</key>
+		<string>We need access to Face ID to secure your account.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
 	</dict>
 </plist>

@@ -87,6 +87,9 @@ dependencies:
   latlong2: ^0.9.1
   sign_in_with_apple: ^7.0.1
   flutter_local_notifications: ^21.0.0
+  local_auth: ^2.3.0
+  local_auth_android: ^1.0.39
+  local_auth_darwin: ^1.1.13
 
 dev_dependencies:
   flutter_test:

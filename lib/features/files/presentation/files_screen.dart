@@ -335,7 +335,7 @@ class _FolderCard extends StatelessWidget {
         width: 195,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? AppColors.primary : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,
@@ -345,7 +345,7 @@ class _FolderCard extends StatelessWidget {
             BoxShadow(
               color: isSelected
                   ? AppColors.primary.withValues(alpha: 0.2)
-                  : Colors.black.withValues(alpha: 0.04),
+                  : Theme.of(context).shadowColor.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -361,13 +361,13 @@ class _FolderCard extends StatelessWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.white.withValues(alpha: 0.2)
+                        ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.2)
                         : AppColors.secondary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.folder_rounded,
-                    color: isSelected ? Colors.white : AppColors.secondary,
+                    color: isSelected ? Theme.of(context).colorScheme.onPrimary : AppColors.secondary,
                     size: 24,
                   ),
                 ),
@@ -375,7 +375,7 @@ class _FolderCard extends StatelessWidget {
                 Icon(
                   isSelected ? Icons.check_circle_rounded : Icons.more_vert,
                   size: 20,
-                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                  color: isSelected ? Theme.of(context).colorScheme.onPrimary : AppColors.textSecondary,
                 ),
               ],
             ),
@@ -386,7 +386,7 @@ class _FolderCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : AppColors.textPrimary,
+                color: isSelected ? Theme.of(context).colorScheme.onPrimary : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
@@ -394,7 +394,7 @@ class _FolderCard extends StatelessWidget {
               folder.date,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: isSelected
-                    ? Colors.white.withValues(alpha: 0.7)
+                    ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7)
                     : AppColors.textSecondary,
                 fontSize: 10,
               ),
@@ -443,14 +443,14 @@ class _Badge extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             color: inverse
-                ? Colors.white.withValues(alpha: 0.2)
+                ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.2)
                 : AppColors.secondary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: inverse ? Colors.white : AppColors.secondary,
+              color: inverse ? Theme.of(context).colorScheme.onPrimary : AppColors.secondary,
               fontWeight: FontWeight.w700,
               fontSize: 12,
             ),
@@ -461,7 +461,7 @@ class _Badge extends StatelessWidget {
           suffix,
           style: TextStyle(
             color: inverse
-                ? Colors.white.withValues(alpha: 0.7)
+                ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7)
                 : AppColors.textSecondary,
             fontSize: 12,
           ),
@@ -535,7 +535,7 @@ class _RecentFileRow extends StatelessWidget {
                   ),
                   child: Icon(
                     _getIconForType(file.type),
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     size: 22,
                   ),
                 ),
@@ -573,7 +573,7 @@ class _RecentFileRow extends StatelessWidget {
                 const SizedBox(width: 4),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, size: 20),
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   onSelected: (value) {
                     if (value == 'delete') onDelete();
                   },

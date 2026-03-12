@@ -147,7 +147,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                         icon: const Icon(Icons.my_location),
                         label: const Text('My Location'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).cardColor,
                           foregroundColor: AppColors.primary,
                           elevation: 2,
                           shape: RoundedRectangleBorder(
@@ -159,11 +159,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -201,7 +201,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                                       ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
-                                  foregroundColor: Colors.white,
+                                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),

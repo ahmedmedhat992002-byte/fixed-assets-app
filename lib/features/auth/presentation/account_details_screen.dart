@@ -112,7 +112,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                             Text(
                               'WorldAssets',
                               style: theme.textTheme.headlineSmall?.copyWith(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -127,7 +127,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                             Text(
                               'Account details',
                               style: theme.textTheme.headlineMedium?.copyWith(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
                             const SizedBox(height: 25),
@@ -204,12 +204,12 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                             const SizedBox(height: 32),
                             ElevatedButton(
                               onPressed: widget.onFinish,
-                              child: const Text(
+                              child: Text(
                                 'Finish',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                               ),
                             ),

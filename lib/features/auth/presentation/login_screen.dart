@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../../core/auth/biometric_service.dart';
+import '../../settings/data/security_settings_controller.dart';
 
 import '../../../core/auth/auth_service.dart';
 import 'widgets/auth_layout.dart';
@@ -54,6 +56,30 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = context.read<AuthService>();
     auth.clearError();
     await auth.signInWithGoogle();
+  }
+
+  Future<void> _signInWithBiometrics() async {
+    final security = context.read<SecuritySettingsController>();
+    if (!security.biometricId && !security.faceId) return;
+
+    final biometricService = BiometricService();
+    final authenticated = await biometricService.authenticate(
+      reason: 'Scan your fingerprint to login',
+    );
+
+    if (authenticated && mounted) {
+      // If biometrics passed, we should ideally have saved credentials.
+      // For this implementation, we will check if there's a cached profile.
+      final auth = context.read<AuthService>();
+      if (auth.firebaseUser != null) {
+        // Already signed in via Firebase, just navigate.
+        Navigator.of(context).pushReplacementNamed('/dashboard');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please sign in with email first to enable biometric login')),
+        );
+      }
+    }
   }
 
   Future<void> _forgotPassword() async {
@@ -188,28 +214,34 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Sign In button ────────────────────────────────────────────
-              FilledButton(
-                onPressed: isLoading ? null : _submit,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: SizedBox.shrink(),
-                      )
-                    : const Text(
-                        'Sign in',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: isLoading ? null : _submit,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: SizedBox.shrink(),
+                            )
+                          : const Text(
+                              'Sign in',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const _BiometricLoginButton(),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -354,6 +386,35 @@ class _SocialButton extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+class _BiometricLoginButton extends StatelessWidget {
+  const _BiometricLoginButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final security = context.watch<SecuritySettingsController>();
+    if (!security.biometricId && !security.faceId) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 12),
+      child: IconButton.filledTonal(
+        onPressed: () {
+          final state = context.findAncestorStateOfType<_LoginScreenState>();
+          state?._signInWithBiometrics();
+        },
+        style: IconButton.styleFrom(
+          padding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        icon: Icon(
+          security.faceId ? Icons.face_unlock_rounded : Icons.fingerprint_rounded,
+          size: 28,
         ),
       ),
     );

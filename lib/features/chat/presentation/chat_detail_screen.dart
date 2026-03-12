@@ -19,6 +19,8 @@ import '../../../core/supabase/supabase_config.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/chat/chat_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/assets/asset_service.dart';
+import '../../../../app/routes/app_routes.dart';
 import 'widgets/profile_preview_dialog.dart';
 import 'widgets/asset_picker_bottom_sheet.dart';
 import 'widgets/voice_message_bubble.dart';
@@ -87,12 +89,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   // Voice recording
   late AudioRecorder _audioRecorder;
   bool _isRecording = false;
+  bool _hasPermission = false;
   String? _recordingPath;
   Timer? _recordingTimer;
   bool _isSwipeToCancel = false;
   DateTime? _recordingStartTime;
   bool _isLocked = false;
-  double _dragOffset = 0;
 
   @override
   void initState() {
@@ -201,6 +203,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final timestamp = msg['timestamp'] as Timestamp?;
     final String type = msg['type'] as String? ?? 'text';
     final replyTo = msg['replyTo'] as Map<String, dynamic>?;
+    final starredBy = List<String>.from(msg['starredBy'] ?? []);
+    final isStarred = starredBy.contains(currentUid);
 
     String timeStr = '--:--';
     if (timestamp != null) {
@@ -279,13 +283,23 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 2, right: 4, left: 4),
-                  child: Text(
-                    timeStr,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 10,
-                      color: AppColors.textMuted,
-                    ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isStarred)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 4),
+                          child: Icon(Icons.star_rounded, size: 12, color: AppColors.textMuted),
+                        ),
+                      Text(
+                        timeStr,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 10,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -393,7 +407,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             : const Color(0xFFE7FFDB))
                         : (theme.brightness == Brightness.dark
                             ? theme.colorScheme.surfaceContainerHighest
-                            : Colors.white),
+                            : theme.cardColor),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(12),
                       topRight: const Radius.circular(12),
@@ -458,7 +472,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(msg['fileType'] ?? ''),
-                          onTap: () => _openFile(msg['fileUrl']),
+                          onTap: () {
+                            if (type == 'asset') {
+                              _openAsset(msg['fileUrl']);
+                            } else {
+                              _openFile(msg['fileUrl']);
+                            }
+                          },
                         ),
                       if (text.isNotEmpty)
                         Padding(
@@ -483,6 +503,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (isStarred)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Icon(
+                                  Icons.star_rounded,
+                                  size: 13,
+                                  color: Colors.black.withValues(alpha: 0.45),
+                                ),
+                              ),
                             Text(
                               timeStr,
                               style: TextStyle(
@@ -541,7 +570,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           : const Color(0xFFE7FFDB))
                       : (theme.brightness == Brightness.dark
                           ? theme.colorScheme.surfaceContainerHighest
-                          : Colors.white),
+                          : theme.cardColor),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(20),
                     topRight: const Radius.circular(20),
@@ -587,14 +616,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (isStarred)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Icon(
+                                  Icons.star_rounded,
+                                  size: 13,
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.white60
+                                      : Colors.black45,
+                                ),
+                              ),
                             Text(
                               timeStr,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: (theme.brightness == Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black)
-                                    .withValues(alpha: 0.45),
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.white60
+                                    : Colors.black45,
                               ),
                             ),
                             if (isMine) ...[
@@ -666,7 +705,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            iconTheme: const IconThemeData(color: Colors.white),
+            iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
           ),
           body: Center(
             child: InteractiveViewer(
@@ -698,6 +737,41 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  Future<void> _openAsset(String? assetId) async {
+    if (assetId == null || assetId.isEmpty) return;
+
+    // Show a loading snackbar or indicator if needed
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Opening asset...'),
+        duration: Duration(milliseconds: 500),
+      ),
+    );
+
+    try {
+      final assetService = context.read<AssetService>();
+      final asset = await assetService.findAssetByNameOrId(assetId);
+
+      if (asset != null && mounted) {
+        Navigator.pushNamed(
+          context,
+          AppRoutes.assetDetail,
+          arguments: asset,
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Asset not found or no longer exists')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening asset: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _loadNickname() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('chat_nickname_${widget.chatId}');
@@ -722,6 +796,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (mounted) setState(() => _favoriteStickers = saved ?? []);
   }
 
+  Future<void> _toggleFavoriteSticker(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> current = List<String>.from(_favoriteStickers);
+
+    if (current.contains(url)) {
+      current.remove(url);
+    } else {
+      current.add(url);
+    }
+
+    await prefs.setStringList('favorite_stickers', current);
+    if (mounted) {
+      setState(() => _favoriteStickers = current);
+    }
+  }
+
   Widget _buildReplyPreview(Map<String, dynamic> replyTo, bool isMine) {
     final theme = Theme.of(context);
     return Container(
@@ -729,7 +819,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: (isMine
-                ? (theme.brightness == Brightness.dark ? Colors.black : Colors.white)
+                ? (theme.brightness == Brightness.dark ? theme.scaffoldBackgroundColor : theme.cardColor)
                 : theme.colorScheme.primaryContainer)
             .withValues(
           alpha: 0.2,
@@ -1067,7 +1157,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Future<void> _preCheckPermissions() async {
     try {
-      await _audioRecorder.hasPermission();
+      _hasPermission = await _audioRecorder.hasPermission();
     } catch (e) {
       debugPrint('Error pre-checking permissions: $e');
     }
@@ -1076,7 +1166,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _startRecording() async {
     if (_isRecording || _isUploading) return;
     try {
-      if (await _audioRecorder.hasPermission()) {
+      if (_hasPermission || await _audioRecorder.hasPermission()) {
+        _hasPermission = true;
         final directory = await getTemporaryDirectory();
         _recordingPath = p.join(
           directory.path,
@@ -1085,7 +1176,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
         const config = RecordConfig(
           encoder: AudioEncoder.aacLc,
-          bitRate: 128000,
+          bitRate: 64000, // Reduced from 128k for faster processing/upload
           sampleRate: 44100,
         );
 
@@ -1094,7 +1185,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           _isSwipeToCancel = false;
           _recordingStartTime = DateTime.now();
           _isLocked = false;
-          _dragOffset = 0;
         });
         HapticFeedback.mediumImpact();
 
@@ -1120,7 +1210,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         path = await _audioRecorder.stop();
       }
     } catch (e) {
-      debugPrint('Error stopping recorder: $e');
+      debugPrint('Error stopping recorder: $path');
     }
 
     final now = DateTime.now();
@@ -1142,7 +1232,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _isSwipeToCancel = false;
         _recordingStartTime = null;
         _isLocked = false;
-        _dragOffset = 0;
       });
       return;
     }
@@ -1151,7 +1240,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _isRecording = false;
       _isUploading = true;
       _isLocked = false;
-      _dragOffset = 0;
     });
 
     try {
@@ -1164,12 +1252,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       final fileSize = await file.length();
       debugPrint('Voice Note: file exists, size: $fileSize bytes');
 
-      final fileBytes = await file.readAsBytes();
       final fileName = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
       final storagePath = 'voice/$fileName';
 
       debugPrint(
-        'Voice Note: starting Supabase upload to: ${SupabaseConfig.chatBucket}/$storagePath',
+        'Voice Note: starting Supabase upload to: chat/$storagePath',
       );
 
       if (!mounted) return;
@@ -1183,13 +1270,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           authService.firebaseUser?.displayName ??
           (email.isNotEmpty ? email.split('@')[0] : '');
 
+      // Use Chat Bucket configuration if available, otherwise fallback
+      final bucket = SupabaseConfig.chatBucket;
+      
       await Supabase.instance.client.storage
-          .from(SupabaseConfig.chatBucket)
-          .uploadBinary(storagePath, fileBytes)
+          .from(bucket)
+          .upload(storagePath, file)
           .timeout(const Duration(seconds: 20));
 
       final downloadUrl = Supabase.instance.client.storage
-          .from(SupabaseConfig.chatBucket)
+          .from(bucket)
           .getPublicUrl(storagePath);
 
       debugPrint('Voice Note: Supabase public URL obtained: $downloadUrl');
@@ -1231,7 +1321,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _isRecording = false;
       _isSwipeToCancel = false;
       _isLocked = false;
-      _dragOffset = 0;
     });
     HapticFeedback.lightImpact();
   }
@@ -1249,6 +1338,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         authService.firebaseUser?.displayName ??
         (email.isNotEmpty ? email.split('@')[0] : '');
 
+    setState(() => _isUploading = true);
     _msgCtrl.clear();
 
     try {
@@ -1263,10 +1353,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (mounted) setState(() => _replyingTo = null);
     } catch (e) {
       if (mounted) {
+        if (_msgCtrl.text.isEmpty) _msgCtrl.text = text; // Restore text on failure
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
       }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -1282,6 +1375,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         authService.firebaseUser?.displayName ??
         (email.isNotEmpty ? email.split('@')[0] : '');
 
+    setState(() => _isUploading = true);
+
     try {
       await chatService.sendMessage(
         chatId: widget.chatId,
@@ -1293,16 +1388,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         messageType: 'sticker',
         replyTo: _replyingTo,
       );
-      setState(() {
-        _showStickerPicker = false;
-        _replyingTo = null;
-      });
+      if (mounted) {
+        setState(() {
+          _showStickerPicker = false;
+          _replyingTo = null;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to send sticker: $e')));
       }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -1407,6 +1506,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         return FadeTransition(opacity: anim1, child: child);
       },
       pageBuilder: (ctx, anim1, anim2) {
+        final theme = Theme.of(context);
         final reactions = msg['reactions'] as Map? ?? {};
         final emojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
@@ -1420,46 +1520,125 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 child: const SizedBox.expand(),
               ),
               Positioned(
-                top: top - 70, // Position above the touch
+                top: top - 80, // Position above the touch
                 left: left,
                 child: RepaintBoundary(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      borderRadius: BorderRadius.circular(40),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 25,
-                          spreadRadius: 2,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Reaction Bar
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.brightness == Brightness.dark ? const Color(0xFF232D36) : Colors.white,
+                          borderRadius: BorderRadius.circular(40),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 15,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(emojis.length, (index) {
-                        final emoji = emojis[index];
-                        return _AnimatedEmoji(
-                          emoji: emoji,
-                          delay: index * 50,
-                          isSelected: reactions[currentUid] == emoji,
-                          onTap: () {
-                            Navigator.of(ctx).pop();
-                            context.read<ChatService>().toggleReaction(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(emojis.length, (index) {
+                            final emoji = emojis[index];
+                            return _AnimatedEmoji(
+                              emoji: emoji,
+                              delay: index * 50,
+                              isSelected: reactions[currentUid] == emoji,
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                context.read<ChatService>().toggleReaction(
+                                      chatId: widget.chatId,
+                                      messageId: msg['id'],
+                                      userId: currentUid,
+                                      emoji: emoji,
+                                    );
+                              },
+                            );
+                          }),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // 2. Action Menu
+                      Container(
+                        width: 180,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.brightness == Brightness.dark ? const Color(0xFF232D36) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 15,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _actionMenuItem(
+                              icon: Icons.reply_rounded,
+                              label: 'Reply',
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                setState(() {
+                                  _replyingTo = msg;
+                                  _focusNode.requestFocus();
+                                });
+                              },
+                            ),
+                            _actionMenuItem(
+                              icon: (msg['starredBy'] as List?)?.contains(currentUid) == true
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              label: (msg['starredBy'] as List?)?.contains(currentUid) == true
+                                  ? 'Unstar'
+                                  : 'Star',
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                context.read<ChatService>().toggleStarMessage(
                                   chatId: widget.chatId,
                                   messageId: msg['id'],
                                   userId: currentUid,
-                                  emoji: emoji,
                                 );
-                          },
-                        );
-                      }),
-                    ),
+                                
+                                // If it's a sticker, also add to favorite stickers picker
+                                if (msg['type'] == 'sticker' && msg['fileUrl'] != null) {
+                                  _toggleFavoriteSticker(msg['fileUrl']);
+                                }
+                              },
+                            ),
+                            _actionMenuItem(
+                              icon: Icons.forward_rounded,
+                              label: 'Forward',
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.forwardMessage,
+                                  arguments: msg,
+                                );
+                              },
+                            ),
+                            Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.5)),
+                            _actionMenuItem(
+                              icon: Icons.delete_outline_rounded,
+                              label: 'Delete',
+                              color: Colors.redAccent,
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                // Delete logic if needed
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1467,6 +1646,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _actionMenuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: color ?? (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                color: color ?? (theme.brightness == Brightness.dark ? Colors.white : Colors.black),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2213,126 +2424,114 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 ],
                               ),
                             ),
-                          if (_isRecording || _isUploading)
-                            _buildRecordingUI(theme)
-                          else
+                            // ── Recording UI ──────────────────────────────────────────────
+                            if (_isRecording) _buildRecordingUI(theme),
+
                             Row(
                               children: [
-                                _inputIconButton(
-                                  icon: _showEmojiPicker ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
-                                  onTap: () {
-                                    setState(() {
-                                      _showEmojiPicker = !_showEmojiPicker;
-                                      _showStickerPicker = false;
-                                      if (_showEmojiPicker) _focusNode.unfocus();
-                                    });
-                                  },
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: theme.brightness == Brightness.dark ? const Color(0xFF2A3942) : Colors.white,
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: TextField(
-                                      controller: _msgCtrl,
-                                      focusNode: _focusNode,
-                                      enabled: !_isUploading,
-                                      textInputAction: TextInputAction.newline,
-                                      minLines: 1,
-                                      maxLines: 5,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111B21),
+                                if (!_isRecording) ...[
+                                  _inputIconButton(
+                                    icon: _showEmojiPicker ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
+                                    onTap: () {
+                                      setState(() {
+                                        _showEmojiPicker = !_showEmojiPicker;
+                                        _showStickerPicker = false;
+                                        if (_showEmojiPicker) _focusNode.unfocus();
+                                      });
+                                    },
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.brightness == Brightness.dark ? const Color(0xFF2A3942) : Colors.white,
+                                        borderRadius: BorderRadius.circular(24),
                                       ),
-                                      decoration: InputDecoration(
-                                        hintText: 'Type a message',
-                                        hintStyle: const TextStyle(color: Color(0xFF8696A0), fontSize: 15),
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                        border: InputBorder.none,
-                                        prefixIcon: IconButton(
-                                          icon: const Icon(Icons.attach_file_rounded, color: Color(0xFF8696A0)),
-                                          onPressed: _isUploading ? null : _showAttachmentMenu,
+                                      child: TextField(
+                                        controller: _msgCtrl,
+                                        focusNode: _focusNode,
+                                        enabled: !_isUploading,
+                                        textInputAction: TextInputAction.newline,
+                                        minLines: 1,
+                                        maxLines: 5,
+                                        onChanged: (text) => setState(() {}),
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111B21),
                                         ),
-                                        suffixIcon: IconButton(
-                                          icon: const Icon(Icons.sticky_note_2_outlined, color: Color(0xFF8696A0)),
-                                          onPressed: () {
-                                            setState(() {
-                                              _showStickerPicker = !_showStickerPicker;
-                                              _showEmojiPicker = false;
-                                              if (_showStickerPicker) _focusNode.unfocus();
-                                            });
-                                          },
+                                        decoration: const InputDecoration(
+                                          hintText: 'Type a message',
+                                          hintStyle: TextStyle(color: Color(0xFF8696A0), fontSize: 15),
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          border: InputBorder.none,
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-                                ValueListenableBuilder<TextEditingValue>(
-                                  valueListenable: _msgCtrl,
-                                  builder: (context, value, _) {
-                                    final hasText = value.text.isNotEmpty;
-                                    return GestureDetector(
-                                      onTapDown: !hasText && !_isUploading ? (_) => _startRecording() : null,
-                                      onPanUpdate: (details) {
-                                        if (_isRecording && !_isLocked) {
-                                          setState(() {
-                                            _dragOffset = details.localPosition.dx;
-                                            if (_dragOffset < -60) {
-                                              if (!_isSwipeToCancel) {
-                                                _isSwipeToCancel = true;
-                                                HapticFeedback.selectionClick();
-                                                _cancelRecording();
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('Recording cancelled'), duration: Duration(seconds: 1)),
-                                                );
-                                              }
-                                            } else if (details.localPosition.dy < -40) {
-                                              _isLocked = true;
-                                              HapticFeedback.mediumImpact();
-                                            }
-                                          });
-                                        }
-                                      },
-                                      onTapUp: (_) {
-                                        if (_isRecording && !_isLocked && !hasText) _stopRecording();
-                                      },
-                                      onTapCancel: () {
-                                        // Do not cancel recording here. onTapCancel fires if a Tap turns into a Pan (e.g. moving finger slightly).
-                                      },
-                                      onPanEnd: (_) {
-                                        if (_isRecording && !_isLocked && !hasText) _stopRecording();
-                                      },
-                                      onPanCancel: () {
-                                        if (_isRecording && !_isLocked && !hasText) _cancelRecording();
-                                      },
-                                      onTap: _isUploading ? null : () {
-                                        if (hasText) {
-                                          _sendMessage();
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Hold to record'), duration: Duration(seconds: 1)),
-                                          );
-                                        }
-                                      },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: _isUploading ? Colors.grey : (_isRecording ? Colors.red : AppColors.primary),
-                                        ),
-                                        child: Icon(
-                                          hasText ? Icons.send_rounded : Icons.mic_rounded,
-                                          color: Colors.white,
-                                          size: 22,
-                                        ),
+                                  _inputIconButton(
+                                    icon: Icons.attach_file_rounded,
+                                    onTap: _showAttachmentMenu,
+                                  ),
+                                  _inputIconButton(
+                                    icon: Icons.sticky_note_2_outlined,
+                                    onTap: () {
+                                      setState(() {
+                                        _showStickerPicker = !_showStickerPicker;
+                                        _showEmojiPicker = false;
+                                        if (_showStickerPicker) _focusNode.unfocus();
+                                      });
+                                    },
+                                  ),
+                                ],
+                                const SizedBox(width: 8),
+                                // Send / Record Button
+                                if (_msgCtrl.text.trim().isNotEmpty)
+                                  GestureDetector(
+                                    onTap: _sendMessage,
+                                    child: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
                                       ),
-                                    );
-                                  },
-                                ),
+                                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
+                                    ),
+                                  )
+                                else
+                                  GestureDetector(
+                                    onLongPressStart: (_) => _startRecording(),
+                                    onLongPressEnd: (_) => _isLocked ? null : _stopRecording(),
+                                    onLongPressMoveUpdate: (details) {
+                                      if (!_isRecording || _isLocked) return;
+                                      if (details.localOffsetFromOrigin.dx < -100) {
+                                        _isSwipeToCancel = true;
+                                        _cancelRecording();
+                                      } else if (details.localOffsetFromOrigin.dy < -100) {
+                                        setState(() => _isLocked = true);
+                                        HapticFeedback.mediumImpact();
+                                      }
+                                    },
+                                    child: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: _isRecording ? Colors.red : AppColors.primary,
+                                        shape: BoxShape.circle,
+                                        boxShadow: _isRecording ? [
+                                          BoxShadow(
+                                            color: Colors.red.withValues(alpha: 0.3),
+                                            blurRadius: 12,
+                                            spreadRadius: 2,
+                                          )
+                                        ] : null,
+                                      ),
+                                      child: Icon(
+                                        _isRecording ? (_isLocked ? Icons.send_rounded : Icons.mic_rounded) : Icons.mic_rounded,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                         ],
@@ -2410,16 +2609,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                   final url = _favoriteStickers[index];
                                   return InkWell(
                                     onTap: () => _sendSticker(url),
-                                    child: Image.network(
-                                      url,
-                                      fit: BoxFit.contain,
-                                      loadingBuilder: (context, child, progress) {
-                                        return child;
-                                      },
-                                      errorBuilder: (_, __, ___) => const Icon(
-                                        Icons.broken_image_rounded,
-                                        color: AppColors.textMuted,
-                                      ),
+                                    onLongPress: () {
+                                      _toggleFavoriteSticker(url);
+                                      HapticFeedback.mediumImpact();
+                                    },
+                                    child: Stack(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(4.0),
+                                          child: Image.network(
+                                            url,
+                                            fit: BoxFit.contain,
+                                            loadingBuilder: (context, child, progress) {
+                                              return child;
+                                            },
+                                            errorBuilder: (_, __, ___) => const Icon(
+                                              Icons.broken_image_rounded,
+                                              color: AppColors.textMuted,
+                                            ),
+                                          ),
+                                        ),
+                                        const Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                                        ),
+                                      ],
                                     ),
                                   );
                                 },
@@ -2450,20 +2665,37 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 return InkWell(
                                   onTap: () =>
                                       _sendSticker(_sampleStickers[index]),
-                                  child: Image.network(
-                                    _sampleStickers[index],
-                                    fit: BoxFit.contain,
-                                    loadingBuilder: (context, child, progress) {
-                                      return child;
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Center(
-                                        child: Icon(
-                                          Icons.broken_image_rounded,
-                                          color: AppColors.textMuted,
+                                  onLongPress: () {
+                                    _toggleFavoriteSticker(_sampleStickers[index]);
+                                    HapticFeedback.mediumImpact();
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: Image.network(
+                                          _sampleStickers[index],
+                                          fit: BoxFit.contain,
+                                          loadingBuilder: (context, child, progress) {
+                                            return child;
+                                          },
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Center(
+                                              child: Icon(
+                                                Icons.broken_image_rounded,
+                                                color: AppColors.textMuted,
+                                              ),
+                                            );
+                                          },
                                         ),
-                                      );
-                                    },
+                                      ),
+                                      if (_favoriteStickers.contains(_sampleStickers[index]))
+                                        const Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                                        ),
+                                    ],
                                   ),
                                 );
                               },
@@ -2484,65 +2716,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildRecordingUI(ThemeData theme) {
-    final recordingColor = theme.brightness == Brightness.dark ? Colors.red.shade400 : Colors.red;
-    
-    return Row(
-      children: [
-        if (_isLocked) 
-          _inputIconButton(
-            icon: Icons.delete_outline_rounded,
-            onTap: _cancelRecording,
-          ),
-        
-        const _PulsingDot(),
-        const SizedBox(width: 8),
-        
-        StreamBuilder<int>(
-          stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-          builder: (context, snapshot) {
-            final duration = DateTime.now().difference(_recordingStartTime ?? DateTime.now());
-            final minutes = duration.inMinutes.toString().padLeft(2, '0');
-            final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-            return Text(
-              '$minutes:$seconds',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            );
-          },
-        ),
-        
-        const Spacer(),
-        
-        if (!_isLocked) 
-          const _SlideToCancelText()
-        else 
-          const Text('Recording locked', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-        
-        const Spacer(),
-        
-        if (_isLocked)
-          GestureDetector(
-            onTap: _stopRecording,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary,
-              ),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+    final duration = _recordingStartTime != null ? DateTime.now().difference(_recordingStartTime!) : Duration.zero;
+    final timeStr = '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          const _PulsingDot(),
+          const SizedBox(width: 8),
+          Text(timeStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Spacer(),
+          if (!_isLocked) 
+            const _SlideToCancelText()
+          else
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              onPressed: _cancelRecording,
             ),
-          )
-        else
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: recordingColor,
-            ),
-            child: const Icon(Icons.mic_rounded, color: Colors.white, size: 22),
-          ),
-      ],
+          const SizedBox(width: 60), // Space for the mic button
+        ],
+      ),
     );
   }
 
@@ -2559,7 +2753,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ),
     );
   }
-}
+} // End of _ChatDetailScreenState
 
 class _PulsingDot extends StatefulWidget {
   const _PulsingDot();
@@ -2589,14 +2783,11 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_controller),
+      opacity: _controller,
       child: Container(
         width: 10,
         height: 10,
-        decoration: const BoxDecoration(
-          color: Colors.red,
-          shape: BoxShape.circle,
-        ),
+        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
       ),
     );
   }
@@ -2611,16 +2802,19 @@ class _SlideToCancelText extends StatefulWidget {
 
 class _SlideToCancelTextState extends State<_SlideToCancelText> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
+  late Animation<Offset> _animation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1500),
     )..repeat();
-    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+    _animation = Tween<Offset>(
+      begin: const Offset(0.5, 0),
+      end: const Offset(-0.5, 0),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -2631,30 +2825,19 @@ class _SlideToCancelTextState extends State<_SlideToCancelText> with SingleTicke
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return ShaderMask(
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              colors: const [AppColors.textMuted, Colors.white, AppColors.textMuted],
-              stops: [
-                (_animation.value - 0.2).clamp(0.0, 1.0),
-                _animation.value,
-                (_animation.value + 0.2).clamp(0.0, 1.0),
-              ],
-            ).createShader(bounds);
-          },
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.chevron_left_rounded, size: 16, color: AppColors.textMuted),
-              SizedBox(width: 4),
-              Text('Slide to cancel', style: TextStyle(color: AppColors.textMuted)),
-            ],
+    return SlideTransition(
+      position: _animation,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: AppColors.textMuted),
+          const SizedBox(width: 4),
+          Text(
+            'Slide to cancel',
+            style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.8), fontSize: 14),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

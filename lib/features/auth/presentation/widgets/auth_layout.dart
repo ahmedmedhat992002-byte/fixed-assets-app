@@ -40,7 +40,7 @@ class AuthLayout extends StatelessWidget {
                             Text(
                               'WorldAssets',
                               style: theme.textTheme.headlineSmall?.copyWith(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -48,7 +48,7 @@ class AuthLayout extends StatelessWidget {
                             Text(
                               title,
                               style: theme.textTheme.headlineMedium?.copyWith(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -57,7 +57,7 @@ class AuthLayout extends StatelessWidget {
                               Text(
                                 subtitle!,
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white70,
+                                  color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],

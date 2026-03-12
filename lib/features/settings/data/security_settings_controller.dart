@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/auth/biometric_service.dart';
 
 class SecuritySettingsController extends ChangeNotifier {
   static const _keyRememberMe = 'security_remember_me';
@@ -9,8 +10,9 @@ class SecuritySettingsController extends ChangeNotifier {
   static const _keyPin = 'security_pin';
 
   final SharedPreferences _prefs;
+  final BiometricService _biometricService;
 
-  SecuritySettingsController._(this._prefs) {
+  SecuritySettingsController._(this._prefs, this._biometricService) {
     _rememberMe = _prefs.getBool(_keyRememberMe) ?? true;
     _faceId = _prefs.getBool(_keyFaceId) ?? true;
     _biometricId = _prefs.getBool(_keyBiometricId) ?? true;
@@ -20,7 +22,7 @@ class SecuritySettingsController extends ChangeNotifier {
 
   static Future<SecuritySettingsController> create() async {
     final prefs = await SharedPreferences.getInstance();
-    return SecuritySettingsController._(prefs);
+    return SecuritySettingsController._(prefs, BiometricService());
   }
 
   late bool _rememberMe;
@@ -41,16 +43,30 @@ class SecuritySettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setFaceId(bool value) {
-    _faceId = value;
-    _prefs.setBool(_keyFaceId, value);
+  Future<bool> setBiometricId(bool value) async {
+    if (value) {
+      final authenticated = await _biometricService.authenticate(
+        reason: 'Authenticate to enable Biometric ID',
+      );
+      if (!authenticated) return false;
+    }
+    _biometricId = value;
+    await _prefs.setBool(_keyBiometricId, value);
     notifyListeners();
+    return true;
   }
 
-  void setBiometricId(bool value) {
-    _biometricId = value;
-    _prefs.setBool(_keyBiometricId, value);
+  Future<bool> setFaceId(bool value) async {
+    if (value) {
+      final authenticated = await _biometricService.authenticate(
+        reason: 'Authenticate to enable Face ID',
+      );
+      if (!authenticated) return false;
+    }
+    _faceId = value;
+    await _prefs.setBool(_keyFaceId, value);
     notifyListeners();
+    return true;
   }
 
   void setGoogleAuth(bool value) {

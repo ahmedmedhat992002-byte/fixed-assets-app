@@ -33,6 +33,7 @@ import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/chat/domain/entities/chat_entities.dart';
 import '../../features/chat/presentation/chat_detail_screen.dart';
 import '../../features/chat/presentation/chat_list_screen.dart';
+import '../../features/chat/presentation/forward_message_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/location/presentation/location_setup_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
@@ -62,6 +63,7 @@ import '../../features/transactions/presentation/transactions_list_screen.dart';
 import '../../features/settings/presentation/user_management_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import '../../features/approvals/presentation/approval_dashboard_screen.dart';
 import 'package:assets_management/app/routes/app_routes.dart';
 import 'package:assets_management/core/models/receipt_data.dart';
 import 'package:assets_management/core/sync/models/asset_local.dart';
@@ -187,8 +189,6 @@ class AppRouter {
         if (args is AssetLocal) {
           asset = args;
         } else if (args is Map<String, dynamic>) {
-          // Attempt to construct from map or name if possible,
-          // though usually these routes expect an AssetLocal now.
           asset = AssetLocal(
             id: args['id'] ?? 'temp-id',
             companyId: '',
@@ -342,6 +342,12 @@ class AppRouter {
           ),
         );
 
+      case AppRoutes.forwardMessage:
+        final message = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (context) => ForwardMessageScreen(message: message),
+        );
+
       // ── Analytics ────────────────────────────────────────────────────────
       case AppRoutes.analytics:
         return MaterialPageRoute(builder: (_) => const AnalyticsScreen());
@@ -351,9 +357,6 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ReportsScreen());
 
       case AppRoutes.reportDetail:
-        // ReportDetailScreen is typically pushed directly from ReportsScreen
-        // with explicit named params. This named-route handler provides
-        // a fallback that shows a generic report detail page.
         return MaterialPageRoute(
           builder: (_) => const ReportDetailScreen(
             title: 'Report',
@@ -417,7 +420,6 @@ class AppRouter {
       case AppRoutes.createTicket:
         return MaterialPageRoute(builder: (_) => const CreateTicketScreen());
       case AppRoutes.ticketDetail:
-        // Support dynamic rendering by passing args if supplied, else gracefully fall back
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
           builder: (_) => TicketDetailScreen(ticketMap: args),
@@ -475,6 +477,9 @@ class AppRouter {
 
       case AppRoutes.locationPicker:
         return MaterialPageRoute(builder: (_) => const LocationPickerScreen());
+
+      case AppRoutes.approvalDashboard:
+        return MaterialPageRoute(builder: (_) => const ApprovalDashboardScreen());
 
       default:
         return MaterialPageRoute(

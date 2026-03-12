@@ -101,12 +101,26 @@ class SecurityScreen extends StatelessWidget {
           _ToggleRow(
             label: l.securityFaceId,
             value: controller.faceId,
-            onChanged: (v) => controller.setFaceId(v),
+            onChanged: (v) async {
+              final success = await controller.setFaceId(v);
+              if (!success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Authentication failed')),
+                );
+              }
+            },
           ),
           _ToggleRow(
             label: l.securityBiometricId,
             value: controller.biometricId,
-            onChanged: (v) => controller.setBiometricId(v),
+            onChanged: (v) async {
+              final success = await controller.setBiometricId(v);
+              if (!success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Authentication failed')),
+                );
+              }
+            },
           ),
           _ToggleRow(
             label: l.securityGoogleAuth,

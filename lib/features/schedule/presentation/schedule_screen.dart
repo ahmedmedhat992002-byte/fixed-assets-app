@@ -303,7 +303,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 setModalState(() => selectedType = t),
                             selectedColor: AppColors.primary,
                             labelStyle: TextStyle(
-                              color: sel ? Colors.white : AppColors.textPrimary,
+                              color: sel ? theme.colorScheme.onPrimary : AppColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

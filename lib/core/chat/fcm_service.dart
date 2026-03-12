@@ -197,7 +197,8 @@ class FcmService {
       if (tokens.isEmpty) return;
 
       // 2. Invoke the Supabase Edge Function
-      await Supabase.instance.client.functions.invoke(
+      debugPrint('FCM: Invoking send-fcm for ${tokens.length} tokens');
+      final res = await Supabase.instance.client.functions.invoke(
         'send-fcm',
         body: {
           'tokens': tokens,
@@ -206,8 +207,10 @@ class FcmService {
           'data': data ?? {},
         },
       );
+      debugPrint('FCM Response: ${res.data}');
     } catch (e) {
-      // Silent error
+      debugPrint('FCM Error: $e');
+      // If we are throwing, maybe show a toast or just rely on log
     }
   }
 }

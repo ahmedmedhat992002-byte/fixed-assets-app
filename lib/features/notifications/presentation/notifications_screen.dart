@@ -325,7 +325,7 @@ class _NotifTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         color: AppColors.danger,
-        child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+        child: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.onError),
       ),
       child: InkWell(
         onTap: () {

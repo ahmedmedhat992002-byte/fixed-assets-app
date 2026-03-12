@@ -43,6 +43,7 @@ class AppRoutes {
   // ── Chat ─────────────────────────────────────────────────────────────────
   static const String chatList = '/chat';
   static const String chatDetail = '/chat/detail';
+  static const String forwardMessage = '/chat/forward';
 
   // ── Analytics ─────────────────────────────────────────────────────────────
   static const String analytics = '/analytics';
@@ -105,4 +106,6 @@ class AppRoutes {
   // ── Location ────────────────────────────────────────────────────────────
   static const String realTimeTracking = '/location/tracking';
   static const String locationPicker = '/location/picker';
+  // ── Approvals ──────────────────────────────────────────────────────────
+  static const String approvalDashboard = '/approvals';
 }

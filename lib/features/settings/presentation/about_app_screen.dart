@@ -119,10 +119,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.inventory_2_rounded,
                         size: 56,
-                        color: Colors.white,
+                        color: cs.onPrimary,
                       ),
                     ),
                   ),

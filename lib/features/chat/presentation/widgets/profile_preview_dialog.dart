@@ -60,8 +60,8 @@ class ProfilePreviewDialog extends StatelessWidget {
                   : Colors.black26,
               child: Text(
                 profile.fullName,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),

@@ -73,13 +73,15 @@ class ReportDetailScreen extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       type,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -88,36 +90,36 @@ class ReportDetailScreen extends StatelessWidget {
                   Text(
                     title,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.calendar_today_rounded,
                         size: 14,
-                        color: Colors.white70,
+                        color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         date,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Icon(
+                      Icon(
                         Icons.date_range_rounded,
                         size: 14,
-                        color: Colors.white70,
+                        color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         period,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -205,7 +207,7 @@ class _Section extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),

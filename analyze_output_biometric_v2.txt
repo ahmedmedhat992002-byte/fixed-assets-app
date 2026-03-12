@@ -1,0 +1,2 @@
+[info] The imported package 'local_auth_android' isn't a dependency of the importing package (D:\fixed-assets-main (1)\fixed-assets-main\lib\core\auth\biometric_service.dart:3:8)
+[info] The imported package 'local_auth_darwin' isn't a dependency of the importing package (D:\fixed-assets-main (1)\fixed-assets-main\lib\core\auth\biometric_service.dart:4:8)

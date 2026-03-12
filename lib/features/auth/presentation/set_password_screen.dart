@@ -31,7 +31,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                   Text(
                     'WorldAssets',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.w600,
                       fontSize: 30,
                     ),
@@ -41,7 +41,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                   Text(
                     'Set your password',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontSize: 25,
                       fontWeight: FontWeight.w600,
                     ),
@@ -95,12 +95,12 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Next',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       ),
                     ),

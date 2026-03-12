@@ -4,8 +4,11 @@ import 'package:assets_management/core/sync/models/maintenance_local.dart';
 import 'package:intl/intl.dart';
 import 'package:assets_management/core/theme/app_colors.dart';
 import 'package:assets_management/core/sync/models/asset_local.dart';
+import 'package:assets_management/core/sync/models/asset_timeline_local.dart';
+import 'package:assets_management/core/timeline/timeline_service.dart';
+import 'package:assets_management/core/approvals/approval_service.dart';
+import 'package:assets_management/core/auth/auth_service.dart';
 import 'package:assets_management/app/routes/app_routes.dart';
-import 'package:assets_management/core/assets/asset_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -27,7 +30,7 @@ class _UnifiedAssetDetailScreenState extends State<UnifiedAssetDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
   }
 
   @override
@@ -116,51 +119,14 @@ class _UnifiedAssetDetailScreenState extends State<UnifiedAssetDetailScreen>
                 ),
                 const SizedBox(width: 8),
                 _ActionIcon(
+                  icon: Icons.swap_horiz_rounded,
+                  onTap: () => _handleTransferRequest(context),
+                ),
+                const SizedBox(width: 8),
+                _ActionIcon(
                   icon: Icons.delete_outline_rounded,
                   color: AppColors.danger,
-                  onTap: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Delete Asset'),
-                        content: Text(
-                          'Are you sure you want to delete ${widget.asset.name}?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(true),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(color: AppColors.danger),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirm == true && context.mounted) {
-                      final service = context.read<AssetService>();
-                      final success = await service.deleteAsset(
-                        widget.asset.id,
-                      );
-                      if (!context.mounted) return;
-                      if (success) {
-                        Navigator.of(context).pop();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              service.lastError ?? 'Failed to delete asset',
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
+                  onTap: () => _handleDisposalRequest(context),
                 ),
               ],
             ),
@@ -189,6 +155,7 @@ class _UnifiedAssetDetailScreenState extends State<UnifiedAssetDetailScreen>
               Tab(text: 'Depreciation'),
               Tab(text: 'Documents'),
               Tab(text: 'Financial'),
+              Tab(text: 'Timeline'),
             ],
           ),
           Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
@@ -203,12 +170,112 @@ class _UnifiedAssetDetailScreenState extends State<UnifiedAssetDetailScreen>
                 _DepreciationTab(asset: widget.asset),
                 _DocumentsTab(asset: widget.asset),
                 _FinancialInfoTab(asset: widget.asset),
+                _TimelineTab(asset: widget.asset),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleDisposalRequest(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Request Disposal'),
+        content: Text('Are you sure you want to request disposal for ${widget.asset.name}? This will require manager approval.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Request', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      if (!context.mounted) return;
+      final auth = context.read<AuthService>();
+      final approval = context.read<ApprovalService>();
+      
+      final success = await approval.requestApproval(
+        assetId: widget.asset.id,
+        requestedBy: auth.firebaseUser?.uid ?? 'unknown',
+        actionType: 'dispose',
+        details: {'assetName': widget.asset.name},
+      );
+
+      if (mounted) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(success ? 'Disposal request sent' : 'Failed to send request')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleTransferRequest(BuildContext context) async {
+    final destinationController = TextEditingController();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Request Transfer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter the destination for this asset:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: destinationController,
+              decoration: const InputDecoration(
+                labelText: 'Destination (e.g., Dept B, Cairo Branch)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Request'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      if (destinationController.text.isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Destination is required')),
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+      final auth = context.read<AuthService>();
+      final approval = context.read<ApprovalService>();
+      
+      final success = await approval.requestApproval(
+        assetId: widget.asset.id,
+        requestedBy: auth.firebaseUser?.uid ?? 'unknown',
+        actionType: 'transfer',
+        details: {
+          'assetName': widget.asset.name,
+          'destination': destinationController.text,
+        },
+      );
+
+      if (mounted) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(success ? 'Transfer request sent' : 'Failed to send request')),
+        );
+      }
+    }
   }
 }
 
@@ -1325,5 +1392,145 @@ class _DetailRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ── Timeline Tab ───────────────────────────────────────────────────────────
+class _TimelineTab extends StatelessWidget {
+  const _TimelineTab({required this.asset});
+  final AssetLocal asset;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Column(
+      children: [
+        Expanded(
+          child: StreamBuilder<List<AssetTimelineLocal>>(
+            stream: context.read<TimelineService>().getTimelineStream(asset.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final events = snapshot.data ?? [];
+              if (events.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.history_rounded,
+                        size: 64,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No history for this asset',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: events.length,
+                itemBuilder: (context, index) {
+                  final event = events[index];
+                  final isLast = index == events.length - 1;
+
+                  return IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Column(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.2),
+                                  width: 4,
+                                  strokeAlign: BorderSide.strokeAlignOutside,
+                                ),
+                              ),
+                            ),
+                            if (!isLast)
+                              Expanded(
+                                child: Container(
+                                  width: 2,
+                                  color: cs.outlineVariant.withValues(alpha: 0.5),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _formatActionTitle(event.action),
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  DateFormat('MMM dd, yyyy · HH:mm').format(event.timestamp),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                ),
+                                if (event.details != null && event.details!.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _formatDetails(event.details!),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatActionTitle(String action) {
+    if (action.isEmpty) return 'Unknown Action';
+    return action[0].toUpperCase() + action.substring(1).toLowerCase();
+  }
+
+  String _formatDetails(Map<String, dynamic> details) {
+    return details.entries.map((e) => '${e.key}: ${e.value}').join(', ');
   }
 }

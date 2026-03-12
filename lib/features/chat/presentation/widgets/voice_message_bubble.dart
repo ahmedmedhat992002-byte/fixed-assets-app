@@ -1,5 +1,6 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:async';
 import '../../../../core/theme/app_colors.dart';
 
 class VoiceMessageBubble extends StatefulWidget {
@@ -25,29 +26,46 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
   PlayerState _playerState = PlayerState.stopped;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
+  StreamSubscription? _durationSubscription;
+  StreamSubscription? _positionSubscription;
+  StreamSubscription? _playerCompleteSubscription;
+  StreamSubscription? _playerStateSubscription;
 
   @override
   void initState() {
     super.initState();
-    _setupAudioPlayer();
+    _initPlayer();
   }
 
-  void _setupAudioPlayer() {
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (mounted) setState(() => _playerState = state);
-    });
-
-    _audioPlayer.onDurationChanged.listen((d) {
+  Future<void> _initPlayer() async {
+    _durationSubscription = _audioPlayer.onDurationChanged.listen((d) {
       if (mounted) setState(() => _duration = d);
     });
 
-    _audioPlayer.onPositionChanged.listen((p) {
+    _positionSubscription = _audioPlayer.onPositionChanged.listen((p) {
       if (mounted) setState(() => _position = p);
+    });
+
+    _playerCompleteSubscription = _audioPlayer.onPlayerComplete.listen((event) {
+      if (mounted) {
+        setState(() {
+          _playerState = PlayerState.stopped;
+          _position = Duration.zero;
+        });
+      }
+    });
+
+    _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (mounted) setState(() => _playerState = state);
     });
   }
 
   @override
   void dispose() {
+    _durationSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _playerCompleteSubscription?.cancel();
+    _playerStateSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -70,119 +88,130 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final bubbleColor = widget.isMine ? cs.primary : cs.surfaceContainer;
-    final textColor = widget.isMine ? cs.onPrimary : cs.onSurfaceVariant;
-    final iconColor = widget.isMine ? cs.onPrimary : cs.primary;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bubbleColor = widget.isMine
+        ? (isDark ? const Color(0xFF005C4B) : const Color(0xFFE7FFDB))
+        : (isDark ? const Color(0xFF1F2C34) : Colors.white);
+
+    final textColor = isDark ? Colors.white : const Color(0xFF111B21);
+    final iconColor = widget.isMine ? (isDark ? Colors.white70 : Colors.black54) : (isDark ? Colors.white70 : Colors.black54);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(maxWidth: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: bubbleColor,
-        borderRadius: BorderRadius.circular(16).copyWith(
-          bottomRight: widget.isMine
-              ? const Radius.circular(0)
-              : const Radius.circular(16),
-          bottomLeft: widget.isMine
-              ? const Radius.circular(16)
-              : const Radius.circular(0),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: widget.isMine ? const Radius.circular(16) : const Radius.circular(4),
+          bottomRight: widget.isMine ? const Radius.circular(4) : const Radius.circular(16),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 1),
+            blurRadius: 1,
           ),
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                onPressed: _playPause,
-                icon: Icon(
-                  _playerState == PlayerState.playing
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
-                  color: iconColor,
-                  size: 28,
+              GestureDetector(
+                onTap: _playPause,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    _playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: iconColor,
+                    size: 32,
+                  ),
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 120,
+              const SizedBox(width: 4),
+              Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 6,
-                        ),
-                        overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 12,
-                        ),
-                        trackHeight: 2,
-                        activeTrackColor: widget.isMine
-                            ? cs.onPrimary
-                            : cs.primary,
-                        inactiveTrackColor: widget.isMine
-                            ? cs.onPrimary.withValues(alpha: 0.3)
-                            : theme.dividerColor,
-                        thumbColor: widget.isMine ? cs.onPrimary : cs.primary,
+                        trackHeight: 3.0,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                        activeTrackColor: AppColors.primary,
+                        inactiveTrackColor: iconColor.withValues(alpha: 0.2),
+                        thumbColor: AppColors.primary,
+                        overlayColor: AppColors.primary.withValues(alpha: 0.1),
                       ),
                       child: Slider(
-                        value: _position.inSeconds.toDouble(),
-                        max: _duration.inSeconds.toDouble() > 0
-                            ? _duration.inSeconds.toDouble()
+                        value: _position.inMilliseconds.toDouble(),
+                        max: _duration.inMilliseconds.toDouble() > 0 
+                            ? _duration.inMilliseconds.toDouble() 
                             : 1.0,
                         onChanged: (value) async {
-                          await _audioPlayer.seek(
-                            Duration(seconds: value.toInt()),
-                          );
+                          final position = Duration(milliseconds: value.toInt());
+                          await _audioPlayer.seek(position);
                         },
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             _formatDuration(_position),
-                            style: TextStyle(color: textColor, fontSize: 10),
+                            style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.6)),
                           ),
-                          Text(
-                            _formatDuration(_duration),
-                            style: TextStyle(color: textColor, fontSize: 10),
-                          ),
+                          if (_duration != Duration.zero)
+                            Text(
+                              _formatDuration(_duration),
+                              style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.6)),
+                            ),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: iconColor.withValues(alpha: 0.1),
+                    child: Icon(Icons.person, color: iconColor, size: 20),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Icon(Icons.mic, color: AppColors.primary, size: 14),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 widget.timeStr,
                 style: TextStyle(
-                  color: widget.isMine
-                      ? Colors.white.withValues(alpha: 0.7)
-                      : AppColors.textMuted,
                   fontSize: 10,
+                  color: textColor.withValues(alpha: 0.5),
                 ),
               ),
-              if (widget.statusTicks != null) widget.statusTicks!,
+              if (widget.statusTicks != null) ...[
+                const SizedBox(width: 4),
+                widget.statusTicks!,
+              ],
             ],
           ),
         ],

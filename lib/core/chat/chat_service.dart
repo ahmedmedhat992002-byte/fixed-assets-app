@@ -539,4 +539,67 @@ class ChatService extends ChangeNotifier {
     if (fileType == null) return false;
     return ['jpg', 'jpeg', 'png', 'webp', 'gif'].contains(fileType.toLowerCase());
   }
+
+  /// Forwards a message to a another chat.
+  Future<void> forwardMessage({
+    required String targetChatId,
+    required String senderId,
+    required String senderName,
+    required String senderEmail,
+    required Map<String, dynamic> originalMessage,
+  }) async {
+    final text = originalMessage['text'] as String? ?? '';
+    final fileUrl = originalMessage['fileUrl'] as String?;
+    final fileName = originalMessage['fileName'] as String?;
+    final fileType = originalMessage['fileType'] as String?;
+    final messageType = originalMessage['type'] as String? ?? 'text';
+
+    await sendMessage(
+      chatId: targetChatId,
+      senderId: senderId,
+      senderName: senderName,
+      senderEmail: senderEmail,
+      text: text,
+      fileUrl: fileUrl,
+      fileName: fileName,
+      fileType: fileType,
+      messageType: messageType,
+    );
+  }
+
+  /// Toggles starring of a message.
+  Future<void> toggleStarMessage({
+    required String chatId,
+    required String messageId,
+    required String userId,
+  }) async {
+    if (chatId.isEmpty || messageId.isEmpty || userId.isEmpty) return;
+
+    try {
+      final msgRef = _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId);
+
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(msgRef);
+        if (!snapshot.exists) return;
+
+        final data = snapshot.data() as Map<String, dynamic>;
+        final starredBy = List<String>.from(data['starredBy'] ?? []);
+
+        if (starredBy.contains(userId)) {
+          starredBy.remove(userId);
+        } else {
+          starredBy.add(userId);
+        }
+
+        transaction.update(msgRef, {'starredBy': starredBy});
+      });
+    } catch (e) {
+      debugPrint('Error toggling star message: $e');
+      throw Exception('Failed to update star status: $e');
+    }
+  }
 }

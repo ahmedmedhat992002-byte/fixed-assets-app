@@ -387,7 +387,7 @@ class _ContractsListScreenState extends State<ContractsListScreen> {
           Navigator.of(context).pushNamed(AppRoutes.addContract);
         },
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         icon: const Icon(Icons.add_rounded),
         label: const Text(
           'Add Contract',
@@ -493,10 +493,10 @@ class _ContractListTile extends StatelessWidget {
             // Icon avatar
             Badge(
               isLabelVisible: item.isExpiringSoon,
-              label: const Icon(
+              label: Icon(
                 Icons.warning_amber_rounded,
                 size: 10,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
               backgroundColor: AppColors.danger,
               offset: const Offset(4, -4),

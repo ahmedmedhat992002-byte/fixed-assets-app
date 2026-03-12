@@ -820,11 +820,11 @@ class _AssetsSettingsScreenState extends State<AssetsSettingsScreen> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _isAdmin ? _resetGovernance : null,
-                  icon: const Icon(Icons.warning_rounded, color: Colors.white),
+                  icon: Icon(Icons.warning_rounded, color: Theme.of(context).colorScheme.onError),
                   label: Text(l.assetsSettingsResetSettings),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.danger,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    foregroundColor: Theme.of(context).colorScheme.onError,
                   ),
                 ),
               ),

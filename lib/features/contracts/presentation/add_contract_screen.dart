@@ -156,7 +156,7 @@ class _AddContractScreenState extends State<AddContractScreen> {
         padding: const EdgeInsets.all(20),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.border),
           ),
@@ -241,7 +241,7 @@ class _AddContractScreenState extends State<AddContractScreen> {
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

@@ -19,6 +19,8 @@ import 'package:assets_management/core/maintenance/maintenance_service.dart';
 import 'package:assets_management/core/chat/chat_service.dart';
 import 'package:assets_management/features/notifications/data/notification_service.dart';
 import 'package:assets_management/core/chat/call_service.dart';
+import 'package:assets_management/core/timeline/timeline_service.dart';
+import 'package:assets_management/core/approvals/approval_service.dart';
 import 'package:assets_management/features/settings/data/notification_settings_controller.dart';
 import 'package:assets_management/features/settings/data/security_settings_controller.dart';
 import 'package:assets_management/app/routes/app_router.dart';
@@ -101,6 +103,8 @@ class App extends StatelessWidget {
           update: (_, notif, maint) => maint!..setNotificationService(notif),
         ),
         ChangeNotifierProvider<CallService>(create: (_) => CallService()),
+        ChangeNotifierProvider<TimelineService>(create: (_) => TimelineService()),
+        ChangeNotifierProvider<ApprovalService>(create: (_) => ApprovalService()),
       ],
       child: Consumer2<LocaleController, ThemeController>(
         builder: (_, localeCtrl, themeCtrl, __) => PresenceObserver(
