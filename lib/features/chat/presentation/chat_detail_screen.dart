@@ -1339,7 +1339,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         authService.firebaseUser?.displayName ??
         (email.isNotEmpty ? email.split('@')[0] : '');
 
-    _isUploading.value = true;
     _msgCtrl.clear();
 
     try {
@@ -1359,8 +1358,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
       }
-    } finally {
-      if (mounted) _isUploading.value = false;
     }
   }
 
@@ -2453,7 +2450,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                           return TextField(
                                             controller: _msgCtrl,
                                             focusNode: _focusNode,
-                                            enabled: !isUploading,
+                                            readOnly: isUploading,
                                             textInputAction: TextInputAction.newline,
                                             minLines: 1,
                                             maxLines: 5,
