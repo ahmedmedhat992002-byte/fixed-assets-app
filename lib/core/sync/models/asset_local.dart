@@ -31,6 +31,7 @@ class AssetLocal extends HiveObject {
     this.latitude,
     this.longitude,
     this.lastScannedAtMs,
+    this.barcode,
     this.isDirty = false,
   });
 
@@ -64,6 +65,7 @@ class AssetLocal extends HiveObject {
       latitude: DataUtils.asDoubleNullable(data['latitude']),
       longitude: DataUtils.asDoubleNullable(data['longitude']),
       lastScannedAtMs: DataUtils.asIntNullable(data['lastScannedAtMs']),
+      barcode: DataUtils.asStringNullable(data['barcode']),
       isDirty: false,
     );
   }
@@ -143,6 +145,9 @@ class AssetLocal extends HiveObject {
   @HiveField(22)
   int? lastScannedAtMs;
 
+  @HiveField(23)
+  String? barcode;
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'companyId': companyId,
@@ -164,6 +169,7 @@ class AssetLocal extends HiveObject {
     if (latitude != null) 'latitude': latitude,
     if (longitude != null) 'longitude': longitude,
     if (lastScannedAtMs != null) 'lastScannedAtMs': lastScannedAtMs,
+    if (barcode != null) 'barcode': barcode,
     'version': version,
     'updatedAtMs': updatedAtMs,
   };
@@ -187,6 +193,7 @@ class AssetLocal extends HiveObject {
     double? latitude,
     double? longitude,
     int? lastScannedAtMs,
+    String? barcode,
     bool? isDirty,
     int? version,
   }) {
@@ -211,6 +218,7 @@ class AssetLocal extends HiveObject {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       lastScannedAtMs: lastScannedAtMs ?? this.lastScannedAtMs,
+      barcode: barcode ?? this.barcode,
       version: version ?? this.version,
       isDirty: isDirty ?? this.isDirty,
       updatedAtMs: DateTime.now().millisecondsSinceEpoch,

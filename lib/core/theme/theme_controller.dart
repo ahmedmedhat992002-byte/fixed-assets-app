@@ -4,28 +4,43 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Controls the app-wide theme mode. Persists selection via SharedPreferences.
 class ThemeController extends ChangeNotifier {
   static const _prefKey = 'app_theme_mode';
+  static const _colorPrefKey = 'app_primary_color_index';
 
-  ThemeController._(this._mode);
+  static const List<Color> availableColors = [
+    Color(0xFF1E3BEA), // Default Blue
+    Color(0xFF1BA462), // Green
+    Color(0xFF7C4DFF), // Purple
+    Color(0xFFFF8A00), // Orange
+    Color(0xFFE91E63), // Pink
+    Color(0xFF00ACC1), // Cyan
+    Color(0xFF5D4037), // Brown
+  ];
+
+  ThemeController._(this._mode, this._colorIndex);
 
   ThemeMode _mode;
+  int _colorIndex;
 
-  /// Creates a [ThemeController] and loads the persisted theme mode.
-  /// Call this after [WidgetsFlutterBinding.ensureInitialized()].
+  /// Creates a [ThemeController] and loads the persisted theme mode and color.
   static Future<ThemeController> create() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_prefKey);
+    final savedMode = prefs.getString(_prefKey);
+    final savedColor = prefs.getInt(_colorPrefKey) ?? 0;
+
     ThemeMode mode;
-    if (saved == 'dark') {
+    if (savedMode == 'dark') {
       mode = ThemeMode.dark;
-    } else if (saved == 'light') {
+    } else if (savedMode == 'light') {
       mode = ThemeMode.light;
     } else {
       mode = ThemeMode.system;
     }
-    return ThemeController._(mode);
+    return ThemeController._(mode, savedColor % availableColors.length);
   }
 
   ThemeMode get themeMode => _mode;
+  int get colorIndex => _colorIndex;
+  Color get currentPrimaryColor => availableColors[_colorIndex];
 
   bool get isDark => _mode == ThemeMode.dark;
 
@@ -43,6 +58,14 @@ class ThemeController extends ChangeNotifier {
       value = 'system';
     }
     await prefs.setString(_prefKey, value);
+  }
+
+  Future<void> setPrimaryColorIndex(int index) async {
+    if (_colorIndex == index) return;
+    _colorIndex = index % availableColors.length;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_colorPrefKey, _colorIndex);
   }
 
   Future<void> toggle() =>

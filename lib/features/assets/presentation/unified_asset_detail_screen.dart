@@ -12,6 +12,10 @@ import 'package:assets_management/app/routes/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:open_file/open_file.dart';
+import 'package:assets_management/core/files/files_service.dart';
+import 'dart:io';
 
 class UnifiedAssetDetailScreen extends StatefulWidget {
   const UnifiedAssetDetailScreen({super.key, required this.asset});
@@ -1081,18 +1085,79 @@ class _DocumentsTab extends StatelessWidget {
   const _DocumentsTab({required this.asset});
   final AssetLocal asset;
 
-  static const _files = <(IconData, String, String)>[];
+  IconData _getFileIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf_rounded;
+      case 'doc':
+      case 'docx':
+        return Icons.description_rounded;
+      case 'xls':
+      case 'xlsx':
+        return Icons.table_chart_rounded;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icons.image_rounded;
+      default:
+        return Icons.insert_drive_file_rounded;
+    }
+  }
+
+  Future<void> _pickAndUpload(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final pickedFile = File(result.files.single.path!);
+        final fileName = result.files.single.name;
+        
+        if (!context.mounted) return;
+        
+        final filesService = context.read<FilesService>();
+        await filesService.uploadFile(
+          pickedFile, 
+          fileName, 
+          category: 'Asset Documents',
+          assetId: asset.id,
+        );
+        
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Document uploaded successfully')),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final filesService = context.watch<FilesService>();
 
     return Column(
       children: [
         Expanded(
-          child: _files.isEmpty
-              ? Center(
+          child: StreamBuilder<List<FileItem>>(
+            stream: filesService.getFilesStream(assetId: asset.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              final docs = snapshot.data ?? [];
+              
+              if (docs.isEmpty) {
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1110,61 +1175,79 @@ class _DocumentsTab extends StatelessWidget {
                       ),
                     ],
                   ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: _files.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 32,
-                    color: cs.outlineVariant.withValues(alpha: 0.3),
-                  ),
-                  itemBuilder: (_, i) {
-                    final (icon, name, size) = _files[i];
-                    return Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withValues(
-                              alpha: 0.2,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(icon, color: AppColors.primary, size: 24),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                size,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.download_rounded,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          onPressed: () {},
-                        ),
-                      ],
-                    );
-                  },
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.all(20),
+                itemCount: docs.length,
+                separatorBuilder: (_, __) => Divider(
+                  height: 32,
+                  color: cs.outlineVariant.withValues(alpha: 0.3),
                 ),
+                itemBuilder: (_, i) {
+                  final file = docs[i];
+                  return Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight.withValues(
+                            alpha: 0.2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _getFileIcon(file.type), 
+                          color: AppColors.primary, 
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              file.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              file.size,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.open_in_new_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        onPressed: () => OpenFile.open(file.localPath),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline_rounded,
+                          color: cs.error,
+                          size: 20,
+                        ),
+                        onPressed: () => filesService.deleteFile(file.id, file.localPath),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
         ),
         Padding(
           padding: const EdgeInsets.all(20),
@@ -1172,11 +1255,7 @@ class _DocumentsTab extends StatelessWidget {
             width: double.infinity,
             height: 52,
             child: OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Document upload coming soon')),
-                );
-              },
+              onPressed: () => _pickAndUpload(context),
               icon: const Icon(Icons.file_upload_outlined),
               label: const Text('Upload Document'),
               style: OutlinedButton.styleFrom(

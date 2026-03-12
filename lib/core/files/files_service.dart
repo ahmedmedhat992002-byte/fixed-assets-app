@@ -23,6 +23,7 @@ class FileItem {
     required this.createdAt,
     required this.type,
     this.category = 'Others',
+    this.assetId,
   });
 
   factory FileItem.fromMap(Map<dynamic, dynamic> map) {
@@ -36,6 +37,7 @@ class FileItem {
           : DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now(),
       type: map['type'] ?? '',
       category: map['category'] ?? 'Others',
+      assetId: map['assetId'],
     );
   }
 
@@ -48,6 +50,7 @@ class FileItem {
       'createdAt': createdAt,
       'type': type,
       'category': category,
+      if (assetId != null) 'assetId': assetId,
     };
   }
 
@@ -55,6 +58,8 @@ class FileItem {
   String get downloadUrl => localPath;
   // Compatibility getter for UI that expects storagePath
   String get storagePath => localPath;
+
+  final String? assetId;
 }
 
 class FilesService extends ChangeNotifier {
@@ -72,25 +77,29 @@ class FilesService extends ChangeNotifier {
     return Hive.box(_boxName);
   }
 
-  Stream<List<FileItem>> getFilesStream({String? category}) async* {
+  Stream<List<FileItem>> getFilesStream({String? category, String? assetId}) async* {
     final box = await _getBox();
 
     // Yield initial data
-    yield _getFilesFromBox(box, category);
+    yield _getFilesFromBox(box, category, assetId);
 
     // Watch for changes
     await for (final _ in box.watch()) {
-      yield _getFilesFromBox(box, category);
+      yield _getFilesFromBox(box, category, assetId);
     }
   }
 
-  List<FileItem> _getFilesFromBox(Box box, String? category) {
-    final List<FileItem> allFiles = box.values
+  List<FileItem> _getFilesFromBox(Box box, String? category, String? assetId) {
+    var allFiles = box.values
         .map((data) => FileItem.fromMap(data as Map))
         .toList();
 
     // Sort by date descending
     allFiles.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    if (assetId != null) {
+      allFiles = allFiles.where((f) => f.assetId == assetId).toList();
+    }
 
     if (category == null || category == 'All') {
       return allFiles;
@@ -102,6 +111,7 @@ class FilesService extends ChangeNotifier {
     File file,
     String fileName, {
     String category = 'Others',
+    String? assetId,
   }) async {
     try {
       if (!file.existsSync()) {
@@ -149,6 +159,7 @@ class FilesService extends ChangeNotifier {
             ? extension.substring(1).toLowerCase()
             : 'bin',
         category: category,
+        assetId: assetId,
       );
 
       final box = await _getBox();

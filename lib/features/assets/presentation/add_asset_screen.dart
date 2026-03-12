@@ -13,11 +13,13 @@ class AddAssetScreen extends StatefulWidget {
     super.key,
     required this.category,
     this.assetName,
+    this.barcode,
     this.asset,
   });
 
   final String category;
   final String? assetName;
+  final String? barcode;
   final AssetLocal? asset;
 
   @override
@@ -29,6 +31,7 @@ class _AddAssetScreenState extends State<AddAssetScreen>
   bool _isLoading = false;
   bool _isFetchingLocation = false;
   late final TextEditingController _assetNameController;
+  late final TextEditingController _barcodeController;
   final _valueController = TextEditingController();
   final _stakeholderNameController = TextEditingController();
   final _stakeholderTitleController = TextEditingController();
@@ -93,6 +96,9 @@ class _AddAssetScreenState extends State<AddAssetScreen>
     _assetNameController = TextEditingController(
       text: asset?.name ?? widget.assetName,
     );
+    _barcodeController = TextEditingController(
+      text: asset?.barcode ?? widget.barcode,
+    );
     if (asset != null) {
       _valueController.text = asset.purchasePrice.toStringAsFixed(
         asset.purchasePrice % 1 == 0 ? 0 : 2,
@@ -132,6 +138,7 @@ class _AddAssetScreenState extends State<AddAssetScreen>
   void dispose() {
     _tabController.dispose();
     _assetNameController.dispose();
+    _barcodeController.dispose();
     _valueController.dispose();
     _stakeholderNameController.dispose();
     _stakeholderTitleController.dispose();
@@ -217,6 +224,9 @@ class _AddAssetScreenState extends State<AddAssetScreen>
         id: '', // Empty ID will trigger Uuid generation in service
         companyId: '', // Handled by AssetService
         name: assetName,
+        barcode: _barcodeController.text.trim().isEmpty 
+            ? null 
+            : _barcodeController.text.trim(),
         category: _selectedCategory ?? widget.category,
         status: 'active', // Default to active upon creation
         purchasePrice: purchasePrice,
@@ -453,6 +463,11 @@ class _AddAssetScreenState extends State<AddAssetScreen>
           _RoundedInputField(
             controller: _assetNameController,
             hintText: 'Asset name',
+          ),
+          const SizedBox(height: 16),
+          _RoundedInputField(
+            controller: _barcodeController,
+            hintText: 'Code',
           ),
           const SizedBox(height: 16),
           LayoutBuilder(

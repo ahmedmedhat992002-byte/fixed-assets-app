@@ -7,7 +7,8 @@ class AppTheme {
   const AppTheme._();
 
   // ── Light Theme ─────────────────────────────────────────────────────────────
-  static ThemeData light() {
+  static ThemeData light({Color? primaryColor}) {
+    final primary = primaryColor ?? AppColors.primary;
     final textTheme = AppTypography.createTextTheme(
       brightness: Brightness.light,
     );
@@ -15,9 +16,9 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
+        seedColor: primary,
         brightness: Brightness.light,
-        primary: AppColors.primary,
+        primary: primary,
         secondary: AppColors.secondary,
         surface: AppColors.background,
       ),
@@ -55,7 +56,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+          borderSide: BorderSide(color: primary, width: 1.4),
         ),
         hintStyle: textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
       ),
@@ -63,8 +64,8 @@ class AppTheme {
         labelStyle: textTheme.labelMedium,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: AppColors.primaryLight,
-        selectedColor: AppColors.primary,
+        backgroundColor: primary.withValues(alpha: 0.1),
+        selectedColor: primary,
       ),
       dividerTheme: const DividerThemeData(
         thickness: 1,
@@ -73,7 +74,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: AppColors.primary,
+          backgroundColor: primary,
           foregroundColor: Colors.white,
           textStyle: textTheme.titleMedium?.copyWith(color: Colors.white),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -83,7 +84,7 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: primary,
         unselectedItemColor: AppColors.textMuted,
         showUnselectedLabels: true,
         selectedLabelStyle: textTheme.labelSmall,
@@ -93,13 +94,13 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
       ),
       tabBarTheme: TabBarThemeData(
-        labelColor: AppColors.primary,
+        labelColor: primary,
         unselectedLabelColor: AppColors.textSecondary,
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: AppColors.primary.withValues(alpha: 0.08),
+          color: primary.withValues(alpha: 0.08),
         ),
         labelStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
         unselectedLabelStyle: textTheme.labelLarge,
@@ -112,7 +113,7 @@ class AppTheme {
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.primary
+              ? primary
               : const Color(0xFFBDBDBD),
         ),
       ),
@@ -127,7 +128,8 @@ class AppTheme {
   }
 
   // ── Dark Theme ──────────────────────────────────────────────────────────────
-  static ThemeData dark() {
+  static ThemeData dark({Color? primaryColor}) {
+    final primary = primaryColor ?? AppColors.primary;
     // Material dark surface scale (avoids pure black)
     const darkBackground = Color(0xFF121212);
     const darkSurface = Color(0xFF1E1E1E);
@@ -143,9 +145,9 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
+        seedColor: primary,
         brightness: Brightness.dark,
-        primary: AppColors.primary,
+        primary: primary,
         secondary: AppColors.secondary,
         surface: darkSurface,
         onSurface: onDarkPrimary,
@@ -184,7 +186,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+          borderSide: BorderSide(color: primary, width: 1.4),
         ),
         hintStyle: textTheme.bodyMedium?.copyWith(
           color: const Color(0xFF78909C),
@@ -194,14 +196,14 @@ class AppTheme {
         labelStyle: textTheme.labelMedium,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: const Color(0xFF1E2A4A),
-        selectedColor: AppColors.primary,
+        backgroundColor: primary.withValues(alpha: 0.15),
+        selectedColor: primary,
       ),
       dividerTheme: const DividerThemeData(thickness: 1, color: darkDivider),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: AppColors.primary,
+          backgroundColor: primary,
           foregroundColor: Colors.white,
           textStyle: textTheme.titleMedium?.copyWith(color: Colors.white),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -211,7 +213,7 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: primary,
         unselectedItemColor: const Color(0xFF78909C),
         showUnselectedLabels: true,
         selectedLabelStyle: textTheme.labelSmall,
@@ -221,13 +223,13 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
       ),
       tabBarTheme: TabBarThemeData(
-        labelColor: AppColors.primary,
+        labelColor: primary,
         unselectedLabelColor: const Color(0xFF78909C),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: AppColors.primary.withValues(alpha: 0.15),
+          color: primary.withValues(alpha: 0.15),
         ),
         labelStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
         unselectedLabelStyle: textTheme.labelLarge,
@@ -236,7 +238,7 @@ class AppTheme {
         thumbColor: WidgetStateProperty.resolveWith((states) => Colors.white),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.primary
+              ? primary
               : const Color(0xFF555555),
         ),
       ),

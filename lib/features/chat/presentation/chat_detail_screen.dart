@@ -88,7 +88,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   // Voice recording
   late AudioRecorder _audioRecorder;
-  bool _isRecording = false;
+  final ValueNotifier<bool> _isRecordingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<Duration> _recordingDurationNotifier = ValueNotifier<Duration>(Duration.zero);
   bool _hasPermission = false;
   String? _recordingPath;
   Timer? _recordingTimer;
@@ -1059,6 +1060,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _scrollCtrl.dispose();
     _focusNode.dispose();
     _audioRecorder.dispose();
+    _isRecordingNotifier.dispose();
+    _recordingDurationNotifier.dispose();
     _blockSubscription?.cancel();
     _recordingTimer?.cancel();
     super.dispose();
@@ -1164,7 +1167,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _startRecording() async {
-    if (_isRecording || _isUploading.value) return;
+    if (_isRecordingNotifier.value || _isUploading.value) return;
     try {
       if (_hasPermission || await _audioRecorder.hasPermission()) {
         _hasPermission = true;
@@ -1180,20 +1183,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           sampleRate: 44100,
         );
 
-        setState(() {
-          _isRecording = true;
-          _isUploading.value = true;
-          _isSwipeToCancel = false;
-          _recordingStartTime = DateTime.now();
-          _isLocked = false;
-        });
+        _isRecordingNotifier.value = true;
+        _isUploading.value = true;
+        _isSwipeToCancel = false;
+        _recordingStartTime = DateTime.now();
+        _recordingDurationNotifier.value = Duration.zero;
+        _isLocked = false;
         HapticFeedback.mediumImpact();
 
         await _audioRecorder.start(config, path: _recordingPath!);
 
         _recordingTimer?.cancel();
-        _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          if (mounted) setState(() {});
+        _recordingTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+          if (_recordingStartTime != null) {
+            _recordingDurationNotifier.value = DateTime.now().difference(_recordingStartTime!);
+          }
         });
       }
     } catch (e) {
@@ -1228,19 +1232,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
         );
       }
-      setState(() {
-        _isRecording = false;
-        _isSwipeToCancel = false;
-        _recordingStartTime = null;
-        _isLocked = false;
-      });
+      _isRecordingNotifier.value = false;
+      _isSwipeToCancel = false;
+      _recordingStartTime = null;
+      _isLocked = false;
       return;
     }
 
-    setState(() {
-      _isRecording = false;
-      _isLocked = false;
-    });
+    _isRecordingNotifier.value = false;
+    _isLocked = false;
     _isUploading.value = true;
 
     try {
@@ -1318,11 +1318,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } catch (e) {
       debugPrint('Error cancelling recorder: $e');
     }
-    setState(() {
-      _isRecording = false;
-      _isSwipeToCancel = false;
-      _isLocked = false;
-    });
+    _isRecordingNotifier.value = false;
+    _isSwipeToCancel = false;
+    _isLocked = false;
     HapticFeedback.lightImpact();
   }
 
@@ -2427,71 +2425,84 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               );
                             },
                           ),
-                            // ── Recording UI ──────────────────────────────────────────────
-                            if (_isRecording) _buildRecordingUI(theme),
-
+                            // ── Recording UI & Input Bar ──────────────────────────────────────────────
                             Row(
                               children: [
-                                if (!_isRecording) ...[
-                                  _inputIconButton(
-                                    icon: _showEmojiPicker ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
-                                    onTap: () {
-                                      setState(() {
-                                        _showEmojiPicker = !_showEmojiPicker;
-                                        _showStickerPicker = false;
-                                        if (_showEmojiPicker) _focusNode.unfocus();
-                                      });
+                                Expanded(
+                                  child: ValueListenableBuilder<bool>(
+                                    valueListenable: _isRecordingNotifier,
+                                    builder: (context, isRecording, child) {
+                                      return AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 250),
+                                        transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+                                        child: isRecording
+                                            ? _buildRecordingUI(theme)
+                                            : Row(
+                                                children: [
+                                                  _inputIconButton(
+                                                    icon: _showEmojiPicker ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _showEmojiPicker = !_showEmojiPicker;
+                                                        _showStickerPicker = false;
+                                                        if (_showEmojiPicker) _focusNode.unfocus();
+                                                      });
+                                                    },
+                                                  ),
+                                                  Expanded(
+                                                    child: Container(
+                                                      decoration: BoxDecoration(
+                                                        color: theme.brightness == Brightness.dark ? const Color(0xFF2A3942) : Colors.white,
+                                                        borderRadius: BorderRadius.circular(24),
+                                                      ),
+                                                      child: ValueListenableBuilder<bool>(
+                                                        valueListenable: _isUploading,
+                                                        builder: (context, isUploading, child) {
+                                                          return TextField(
+                                                            controller: _msgCtrl,
+                                                            focusNode: _focusNode,
+                                                            readOnly: isUploading,
+                                                            textInputAction: TextInputAction.newline,
+                                                            minLines: 1,
+                                                            maxLines: 5,
+                                                            onChanged: (text) {},
+                                                            style: TextStyle(
+                                                              fontSize: 15,
+                                                              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111B21),
+                                                            ),
+                                                            decoration: const InputDecoration(
+                                                              hintText: 'Type a message',
+                                                              hintStyle: TextStyle(color: Color(0xFF8696A0), fontSize: 15),
+                                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                                              border: InputBorder.none,
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  _inputIconButton(
+                                                    icon: Icons.attach_file_rounded,
+                                                    onTap: _showAttachmentMenu,
+                                                  ),
+                                                  _inputIconButton(
+                                                    icon: Icons.sticky_note_2_outlined,
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _showStickerPicker = !_showStickerPicker;
+                                                        _showEmojiPicker = false;
+                                                        if (_showStickerPicker) _focusNode.unfocus();
+                                                      });
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                      );
                                     },
                                   ),
-                                  Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: theme.brightness == Brightness.dark ? const Color(0xFF2A3942) : Colors.white,
-                                        borderRadius: BorderRadius.circular(24),
-                                      ),
-                                      child: ValueListenableBuilder<bool>(
-                                        valueListenable: _isUploading,
-                                        builder: (context, isUploading, child) {
-                                          return TextField(
-                                            controller: _msgCtrl,
-                                            focusNode: _focusNode,
-                                            readOnly: isUploading,
-                                            textInputAction: TextInputAction.newline,
-                                            minLines: 1,
-                                            maxLines: 5,
-                                            onChanged: (text) {},  // No setState - ValueListenableBuilder handles the rebuild
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111B21),
-                                            ),
-                                            decoration: const InputDecoration(
-                                              hintText: 'Type a message',
-                                              hintStyle: TextStyle(color: Color(0xFF8696A0), fontSize: 15),
-                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                              border: InputBorder.none,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  _inputIconButton(
-                                    icon: Icons.attach_file_rounded,
-                                    onTap: _showAttachmentMenu,
-                                  ),
-                                  _inputIconButton(
-                                    icon: Icons.sticky_note_2_outlined,
-                                    onTap: () {
-                                      setState(() {
-                                        _showStickerPicker = !_showStickerPicker;
-                                        _showEmojiPicker = false;
-                                        if (_showStickerPicker) _focusNode.unfocus();
-                                      });
-                                    },
-                                  ),
-                                ],
+                                ),
                                 const SizedBox(width: 8),
-                                // Send / Record Button — uses ValueListenableBuilder to avoid full rebuilds
+                                // Send / Record Button
                                 ValueListenableBuilder<TextEditingValue>(
                                   valueListenable: _msgCtrl,
                                   builder: (context, value, child) {
@@ -2510,39 +2521,45 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                         ),
                                       );
                                     }
-                                    return GestureDetector(
-                                      onLongPressStart: (_) => _startRecording(),
-                                      onLongPressEnd: (_) => _isLocked ? null : _stopRecording(),
-                                      onLongPressMoveUpdate: (details) {
-                                        if (!_isRecording || _isLocked) return;
-                                        if (details.localOffsetFromOrigin.dx < -100) {
-                                          _isSwipeToCancel = true;
-                                          _cancelRecording();
-                                        } else if (details.localOffsetFromOrigin.dy < -100) {
-                                          setState(() => _isLocked = true);
-                                          HapticFeedback.mediumImpact();
-                                        }
+                                    return ValueListenableBuilder<bool>(
+                                      valueListenable: _isRecordingNotifier,
+                                      builder: (context, isRecording, child) {
+                                        return GestureDetector(
+                                          onLongPressStart: (_) => _startRecording(),
+                                          onLongPressEnd: (_) => _isLocked ? null : _stopRecording(),
+                                          onLongPressMoveUpdate: (details) {
+                                            if (!isRecording || _isLocked) return;
+                                            if (details.localOffsetFromOrigin.dx < -100) {
+                                              _isSwipeToCancel = true;
+                                              _cancelRecording();
+                                            } else if (details.localOffsetFromOrigin.dy < -100) {
+                                              setState(() => _isLocked = true);
+                                              HapticFeedback.mediumImpact();
+                                            }
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            width: isRecording ? 54 : 48,
+                                            height: isRecording ? 54 : 48,
+                                            decoration: BoxDecoration(
+                                              color: isRecording ? Colors.red : AppColors.primary,
+                                              shape: BoxShape.circle,
+                                              boxShadow: isRecording ? [
+                                                BoxShadow(
+                                                  color: Colors.red.withValues(alpha: 0.3),
+                                                  blurRadius: 12,
+                                                  spreadRadius: 2,
+                                                )
+                                              ] : null,
+                                            ),
+                                            child: Icon(
+                                              isRecording ? (_isLocked ? Icons.send_rounded : Icons.mic_rounded) : Icons.mic_rounded,
+                                              color: Colors.white,
+                                              size: isRecording ? 28 : 24,
+                                            ),
+                                          ),
+                                        );
                                       },
-                                      child: Container(
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          color: _isRecording ? Colors.red : AppColors.primary,
-                                          shape: BoxShape.circle,
-                                          boxShadow: _isRecording ? [
-                                            BoxShadow(
-                                              color: Colors.red.withValues(alpha: 0.3),
-                                              blurRadius: 12,
-                                              spreadRadius: 2,
-                                            )
-                                          ] : null,
-                                        ),
-                                        child: Icon(
-                                          _isRecording ? (_isLocked ? Icons.send_rounded : Icons.mic_rounded) : Icons.mic_rounded,
-                                          color: Colors.white,
-                                          size: 24,
-                                        ),
-                                      ),
                                     );
                                   },
                                 ),
@@ -2730,16 +2747,23 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildRecordingUI(ThemeData theme) {
-    final duration = _recordingStartTime != null ? DateTime.now().difference(_recordingStartTime!) : Duration.zero;
-    final timeStr = '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
-
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           const _PulsingDot(),
           const SizedBox(width: 8),
-          Text(timeStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ValueListenableBuilder<Duration>(
+            valueListenable: _recordingDurationNotifier,
+            builder: (context, duration, child) {
+              final minutes = duration.inMinutes;
+              final seconds = duration.inSeconds % 60;
+              return Text(
+                '$minutes:${seconds.toString().padLeft(2, '0')}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              );
+            },
+          ),
           const Spacer(),
           if (!_isLocked) 
             const _SlideToCancelText()

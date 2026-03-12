@@ -39,6 +39,7 @@ class AssetLocalAdapter extends TypeAdapter<AssetLocal> {
       latitude: fields[20] as double?,
       longitude: fields[21] as double?,
       lastScannedAtMs: fields[22] as int?,
+      barcode: fields[23] as String?,
       isDirty: fields[15] as bool,
     );
   }
@@ -46,7 +47,7 @@ class AssetLocalAdapter extends TypeAdapter<AssetLocal> {
   @override
   void write(BinaryWriter writer, AssetLocal obj) {
     writer
-      ..writeByte(23)
+      ..writeByte(24)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -92,7 +93,9 @@ class AssetLocalAdapter extends TypeAdapter<AssetLocal> {
       ..writeByte(21)
       ..write(obj.longitude)
       ..writeByte(22)
-      ..write(obj.lastScannedAtMs);
+      ..write(obj.lastScannedAtMs)
+      ..writeByte(23)
+      ..write(obj.barcode);
   }
 
   @override

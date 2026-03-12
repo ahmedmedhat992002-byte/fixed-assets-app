@@ -111,8 +111,8 @@ class App extends StatelessWidget {
           child: MaterialApp(
             title: 'WorldAssets',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
+            theme: AppTheme.light(primaryColor: themeCtrl.currentPrimaryColor),
+            darkTheme: AppTheme.dark(primaryColor: themeCtrl.currentPrimaryColor),
             themeMode: themeCtrl.themeMode,
             locale: localeCtrl.locale,
             supportedLocales: const [Locale('en'), Locale('ar')],

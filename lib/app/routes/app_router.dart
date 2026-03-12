@@ -230,6 +230,7 @@ class AppRouter {
       case AppRoutes.addAsset:
         String category = 'Machinery';
         String? assetName;
+        String? barcode;
         AssetLocal? asset;
         if (settings.arguments is String) {
           category = settings.arguments as String;
@@ -237,14 +238,17 @@ class AppRouter {
           final args = settings.arguments as Map<String, dynamic>;
           category = args['category'] ?? 'Assets';
           assetName = args['assetName'];
+          barcode = args['barcode'];
         } else if (settings.arguments is AssetLocal) {
           asset = settings.arguments as AssetLocal;
           category = asset.category;
+          barcode = asset.barcode;
         }
         return MaterialPageRoute(
           builder: (_) => AddAssetScreen(
             category: category,
             assetName: assetName,
+            barcode: barcode,
             asset: asset,
           ),
         );

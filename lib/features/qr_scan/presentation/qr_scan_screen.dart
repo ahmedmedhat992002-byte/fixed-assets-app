@@ -589,7 +589,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                     Navigator.pop(context); // Close picker
                     Navigator.of(context).pushNamed(
                       AppRoutes.addAsset,
-                      arguments: {'category': cat, 'assetName': data},
+                      arguments: {'category': cat, 'barcode': data},
                     );
                   },
                 ),

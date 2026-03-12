@@ -798,6 +798,54 @@ class _GeneralTab extends StatelessWidget {
             ],
           ),
         ),
+
+        // Added Theme Color Selection
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Text(
+            'Theme Color',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF78909C)),
+          ),
+        ),
+        SizedBox(
+          height: 70,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: ThemeController.availableColors.length,
+            itemBuilder: (context, index) {
+              final color = ThemeController.availableColors[index];
+              final isSelected = themeCtrl.colorIndex == index;
+              return GestureDetector(
+                onTap: () => themeCtrl.setPrimaryColorIndex(index),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? Colors.white : Colors.transparent,
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 28)
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
         _GeneralItem(
           icon: Icons.admin_panel_settings_outlined,
           label: AppLocalizations.of(context)!.complianceSettingsTitle,
