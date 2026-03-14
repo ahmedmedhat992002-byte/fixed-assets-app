@@ -953,7 +953,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     switch (status) {
       case 'seen':
         iconData = Icons.done_all_rounded;
-        iconColor = isInsideBubble ? Colors.lightBlueAccent : Colors.blue;
+        // A more vibrant, premium blue for read receipts
+        iconColor = isInsideBubble ? const Color(0xFF40C4FF) : Colors.blueAccent;
         break;
       case 'delivered':
         iconData = Icons.done_all_rounded;
@@ -962,7 +963,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       case 'sent':
       default:
         iconData = Icons.check_rounded;
-        iconColor = isInsideBubble ? Colors.white70 : Colors.grey;
+        iconColor = isInsideBubble ? Colors.white60 : Colors.grey.shade400;
         break;
     }
 
@@ -1225,12 +1226,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     if (_isSwipeToCancel || path == null || duration.inMilliseconds < 500) {
       if (!_isSwipeToCancel && duration.inMilliseconds < 500 && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Hold to record'),
-            duration: Duration(seconds: 1),
-          ),
-        );
+        // Removed SnackBar as requested
       }
       _isRecordingNotifier.value = false;
       _isSwipeToCancel = false;
@@ -1348,13 +1344,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         text: text,
         replyTo: _replyingTo.value,
       );
-      if (mounted) _replyingTo.value = null;
+      
+      if (mounted) {
+        _replyingTo.value = null;
+      }
     } catch (e) {
       if (mounted) {
         if (_msgCtrl.text.isEmpty) _msgCtrl.text = text; // Restore text on failure
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
+        ).showSnackBar(SnackBar(content: Text('Failed to send message: $e'), backgroundColor: Colors.red));
       }
     }
   }

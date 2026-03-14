@@ -13,8 +13,15 @@ service cloud.firestore {
       
       // Allow users to manage their own profile.
       allow create, update: if isSelf(uid);
+
+      // Sub-collection for FCM tokens: allow all authenticated users to read
+      // (so they can send notifications to others) but only the owner to write.
+      match /fcmTokens/{tokenId} {
+        allow read: if isAuthed();
+        allow write: if isSelf(uid);
+      }
       
-      // Sub-collections: strictly owned by the user.
+      // Other sub-collections: strictly owned by the user.
       match /{allSubcollections=**} {
         allow read, write: if isSelf(uid);
       }
@@ -33,7 +40,7 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         // Access messages only if you are a participant in the parent chat.
-        allow read, create: if isAuthed() && 
+        allow read, create, update: if isAuthed() && 
           request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       }
     }
@@ -58,6 +65,12 @@ service cloud.firestore {
     // ── /invitations Collection ──────────────────────────────────────────────
     match /invitations/{id} {
       allow read, write: if isAuthed();
+    }
+
+    // ── /debug_logs Collection (Temporary for troubleshooting) ───────────────
+    match /debug_logs/{id} {
+      allow create: if isAuthed();
+      allow read: if false; // Only I can see via Firebase Console
     }
   }
 }

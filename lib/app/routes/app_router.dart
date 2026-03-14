@@ -75,7 +75,7 @@ class AppRouter {
     switch (settings.name) {
       // ── Splash & Onboarding ──────────────────────────────────────────────
       case AppRoutes.splash:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => SplashScreen(
             onFinished: () => Navigator.of(
               context,
@@ -84,7 +84,7 @@ class AppRouter {
         );
 
       case AppRoutes.onboarding:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => OnboardingScreen(
             onFinished: () =>
                 Navigator.of(context).pushReplacementNamed(AppRoutes.login),
@@ -93,10 +93,10 @@ class AppRouter {
 
       // ── Auth ─────────────────────────────────────────────────────────────
       case AppRoutes.login:
-        return MaterialPageRoute(builder: (context) => const LoginScreen());
+        return _buildPageRoute(settings: settings, builder: (context) => const LoginScreen());
 
       case AppRoutes.forgotPassword:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => ForgotPasswordScreen(
             onSendOtp: () =>
                 Navigator.of(context).pushNamed(AppRoutes.resetOtp),
@@ -104,7 +104,7 @@ class AppRouter {
         );
 
       case AppRoutes.resetOtp:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => ResetOtpScreen(
             onVerify: () =>
                 Navigator.of(context).pushNamed(AppRoutes.newPassword),
@@ -113,7 +113,7 @@ class AppRouter {
         );
 
       case AppRoutes.newPassword:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => NewPasswordScreen(
             onConfirm: () => Navigator.of(
               context,
@@ -122,15 +122,15 @@ class AppRouter {
         );
 
       case AppRoutes.signup:
-        return MaterialPageRoute(builder: (context) => const SignUpScreen());
+        return _buildPageRoute(settings: settings, builder: (context) => const SignUpScreen());
 
       case AppRoutes.verifyEmail:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => const VerifyEmailScreen(),
         );
 
       case AppRoutes.setPassword:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => SetPasswordScreen(
             onNext: () =>
                 Navigator.of(context).pushNamed(AppRoutes.accountDetails),
@@ -138,7 +138,7 @@ class AppRouter {
         );
 
       case AppRoutes.accountDetails:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => AccountDetailsScreen(
             onFinish: () => Navigator.of(context).pushNamedAndRemoveUntil(
               AppRoutes.registrationComplete,
@@ -148,7 +148,7 @@ class AppRouter {
         );
 
       case AppRoutes.registrationComplete:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => RegistrationCompleteScreen(
             onGoToLogin: () => Navigator.of(
               context,
@@ -158,20 +158,20 @@ class AppRouter {
 
       // ── Main App ─────────────────────────────────────────────────────────
       case AppRoutes.dashboard:
-        return MaterialPageRoute(builder: (_) => const HomeShell());
+        return _buildPageRoute(settings: settings, builder: (_) => const HomeShell());
 
       // ── Assets ───────────────────────────────────────────────────────────
       case AppRoutes.assets:
-        return MaterialPageRoute(builder: (_) => const AssetsScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const AssetsScreen());
 
       case AppRoutes.intangibleAssets:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => IntangibleAssetsScreen(),
         );
 
       case AppRoutes.depreciationSchedule:
         final asset = settings.arguments as AssetLocal;
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => DepreciationScheduleScreen(asset: asset),
         );
 
@@ -217,12 +217,12 @@ class AppRouter {
         }
 
         if (asset != null) {
-          return MaterialPageRoute(
+          return _buildPageRoute(settings: settings, 
             builder: (_) => UnifiedAssetDetailScreen(asset: asset!),
           );
         }
 
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) =>
               const Scaffold(body: Center(child: Text('Asset data missing'))),
         );
@@ -244,7 +244,7 @@ class AppRouter {
           category = asset.category;
           barcode = asset.barcode;
         }
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => AddAssetScreen(
             category: category,
             assetName: assetName,
@@ -254,7 +254,7 @@ class AppRouter {
         );
 
       case AppRoutes.vehiclesList:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => VehiclesListScreen(
             onVehicleTap: (asset) => Navigator.of(
               context,
@@ -271,30 +271,30 @@ class AppRouter {
         );
 
       case AppRoutes.machineryList:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => const MachineryListScreen(),
         );
 
       case AppRoutes.computerHardwareList:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => const ComputerHardwareListScreen(),
         );
 
       case AppRoutes.computerSoftwareList:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => const ComputerSoftwareListScreen(),
         );
 
       case AppRoutes.furnitureList:
-        return MaterialPageRoute(builder: (_) => const FurnitureListScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const FurnitureListScreen());
 
       case AppRoutes.fixedAssetsList:
-        return MaterialPageRoute(builder: (_) => const FixedAssetsListScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const FixedAssetsListScreen());
 
       case AppRoutes.warehouses:
-        return MaterialPageRoute(builder: (_) => const WarehousesScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const WarehousesScreen());
       case AppRoutes.contractsList:
-        return MaterialPageRoute(builder: (_) => const ContractsListScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const ContractsListScreen());
 
       case AppRoutes.contractDetail:
         final args = settings.arguments;
@@ -304,16 +304,16 @@ class AppRouter {
         } else if (args is Map<String, dynamic>) {
           cName = args['name'] ?? args['contractName'] ?? 'Contract';
         }
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => ContractDetailScreen(contractName: cName),
         );
 
       case AppRoutes.addContract:
-        return MaterialPageRoute(builder: (_) => const AddContractScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const AddContractScreen());
 
       // ── Chat ─────────────────────────────────────────────────────────────
       case AppRoutes.chatList:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => ChatListScreen(
             onTapChat: (chat) => Navigator.of(
               context,
@@ -339,7 +339,7 @@ class AppRouter {
             unreadCount: 0,
           );
         }
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => ChatDetailScreen(
             chatId: chat?.id ?? '1',
             contactName: chat?.name ?? 'Chat',
@@ -348,20 +348,20 @@ class AppRouter {
 
       case AppRoutes.forwardMessage:
         final message = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => ForwardMessageScreen(message: message),
         );
 
       // ── Analytics ────────────────────────────────────────────────────────
       case AppRoutes.analytics:
-        return MaterialPageRoute(builder: (_) => const AnalyticsScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const AnalyticsScreen());
 
       // ── Reports ──────────────────────────────────────────────────────────
       case AppRoutes.reports:
-        return MaterialPageRoute(builder: (_) => const ReportsScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const ReportsScreen());
 
       case AppRoutes.reportDetail:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => const ReportDetailScreen(
             title: 'Report',
             type: 'General',
@@ -373,78 +373,78 @@ class AppRouter {
 
       // ── Notifications ────────────────────────────────────────────────────
       case AppRoutes.notifications:
-        return MaterialPageRoute(builder: (_) => const NotificationsScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const NotificationsScreen());
 
       // ── Schedule ────────────────────────────────────────────────────────
       case AppRoutes.schedule:
-        return MaterialPageRoute(builder: (_) => const ScheduleScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const ScheduleScreen());
       case AppRoutes.profile:
-        return MaterialPageRoute(builder: (_) => const ProfileScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const ProfileScreen());
 
       // ── QR Scan ──────────────────────────────────────────────────────────
       case AppRoutes.qrScan:
-        return MaterialPageRoute(builder: (_) => const QrScanScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const QrScanScreen());
 
       // ── Maintenance ────────────────────────────────────────────────────────
       case AppRoutes.maintenance:
-        return MaterialPageRoute(builder: (_) => const MaintenanceScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const MaintenanceScreen());
 
       case AppRoutes.transactions:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => const TransactionsListScreen(),
         );
 
       // ── Settings & Legal ─────────────────────────────────────────────────────────
       case AppRoutes.settings:
-        return MaterialPageRoute(builder: (_) => const SettingsScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const SettingsScreen());
       case AppRoutes.aboutApp:
-        return MaterialPageRoute(builder: (_) => const AboutAppScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const AboutAppScreen());
       case AppRoutes.assetsSettings:
-        return MaterialPageRoute(builder: (_) => const AssetsSettingsScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const AssetsSettingsScreen());
       case AppRoutes.complianceSettings:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => const ComplianceSettingsScreen(),
         );
       case AppRoutes.auditLogs:
-        return MaterialPageRoute(builder: (_) => const AuditLogScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const AuditLogScreen());
       case AppRoutes.termsConditions:
-        return MaterialPageRoute(builder: (_) => const TermsConditionsScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const TermsConditionsScreen());
       case AppRoutes.dpa:
-        return MaterialPageRoute(builder: (_) => const DpaScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const DpaScreen());
       case AppRoutes.privacyPolicy:
-        return MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const PrivacyPolicyScreen());
       case AppRoutes.backupSync:
-        return MaterialPageRoute(builder: (_) => const BackupSyncScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const BackupSyncScreen());
 
       // ── Support ───────────────────────────────────────────────────────────
       case AppRoutes.supportDashboard:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => const SupportDashboardScreen(),
         );
       case AppRoutes.createTicket:
-        return MaterialPageRoute(builder: (_) => const CreateTicketScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const CreateTicketScreen());
       case AppRoutes.ticketDetail:
         final args = settings.arguments as Map<String, dynamic>?;
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => TicketDetailScreen(ticketMap: args),
         );
       case AppRoutes.ticketHistory:
-        return MaterialPageRoute(builder: (_) => const TicketHistoryScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const TicketHistoryScreen());
       case AppRoutes.slaPolicy:
-        return MaterialPageRoute(builder: (_) => const SlaPolicyScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const SlaPolicyScreen());
       case AppRoutes.knowledgeBase:
-        return MaterialPageRoute(builder: (_) => const KnowledgeBaseScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const KnowledgeBaseScreen());
 
       // ── Files ─────────────────────────────────────────────────────────────
       case AppRoutes.files:
-        return MaterialPageRoute(builder: (_) => const FilesScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const FilesScreen());
 
       case AppRoutes.userManagement:
-        return MaterialPageRoute(builder: (_) => const UserManagementScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const UserManagementScreen());
 
       // ── Location (legacy) ────────────────────────────────────────────────
       case AppRoutes.locationSetup:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => LocationSetupScreen(
             onSaveAndContinue: () =>
                 Navigator.of(context).pushNamed(AppRoutes.dashboard),
@@ -452,44 +452,96 @@ class AppRouter {
         );
 
       case AppRoutes.locationConfirm:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (context) => const LocationSetupScreen(),
         );
 
       case AppRoutes.manualSearch:
         final query = settings.arguments as String?;
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => ManualSearchScreen(initialQuery: query),
         );
 
       case AppRoutes.eReceipt:
         final data = settings.arguments as ReceiptData? ?? ReceiptData.mock();
-        return MaterialPageRoute(builder: (_) => EReceiptScreen(data: data));
+        return _buildPageRoute(settings: settings, builder: (_) => EReceiptScreen(data: data));
 
       case AppRoutes.realTimeTracking:
         final args = settings.arguments;
         if (args is! AssetLocal) {
-          return MaterialPageRoute(
+          return _buildPageRoute(settings: settings, 
             builder: (_) => const Scaffold(
               body: Center(child: Text('Invalid Asset for Tracking')),
             ),
           );
         }
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) => RealTimeTrackingScreen(asset: args),
         );
 
       case AppRoutes.locationPicker:
-        return MaterialPageRoute(builder: (_) => const LocationPickerScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const LocationPickerScreen());
 
       case AppRoutes.approvalDashboard:
-        return MaterialPageRoute(builder: (_) => const ApprovalDashboardScreen());
+        return _buildPageRoute(settings: settings, builder: (_) => const ApprovalDashboardScreen());
 
       default:
-        return MaterialPageRoute(
+        return _buildPageRoute(settings: settings, 
           builder: (_) =>
               const Scaffold(body: Center(child: Text('Route not found'))),
         );
     }
+  }
+
+  static Route<dynamic> _buildPageRoute({
+    required WidgetBuilder builder,
+    required RouteSettings settings,
+  }) {
+    const specialRoutes = [
+      AppRoutes.assetDetail,
+      AppRoutes.intangibleAssetDetail,
+      AppRoutes.vehicleDetail,
+      AppRoutes.machineryDetail,
+      AppRoutes.computerHardwareDetail,
+      AppRoutes.computerSoftwareDetail,
+      AppRoutes.furnitureDetail,
+      AppRoutes.fixedAssetDetail,
+      AppRoutes.contractDetail,
+      AppRoutes.ticketDetail,
+      AppRoutes.reportDetail,
+    ];
+
+    final isSpecial = specialRoutes.contains(settings.name);
+
+    return PageRouteBuilder(
+      settings: settings,
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curve = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
+
+        if (isSpecial) {
+          return FadeTransition(
+            opacity: curve,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1.0).animate(curve),
+              child: child,
+            ),
+          );
+        } else {
+          return FadeTransition(
+            opacity: curve,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 0.04),
+                end: Offset.zero,
+              ).animate(curve),
+              child: child,
+            ),
+          );
+        }
+      },
+    );
   }
 }

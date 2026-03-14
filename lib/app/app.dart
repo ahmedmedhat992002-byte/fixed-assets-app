@@ -94,9 +94,8 @@ class App extends StatelessWidget {
           create: (_) => AnalyticsService(),
         ),
         Provider<UserManagementService>(create: (_) => UserManagementService()),
-        ChangeNotifierProxyProvider<NotificationService, ChatService>(
+        ChangeNotifierProvider<ChatService>(
           create: (_) => ChatService(),
-          update: (_, notif, chat) => chat!..setNotificationService(notif),
         ),
         ChangeNotifierProxyProvider<NotificationService, MaintenanceService>(
           create: (_) => MaintenanceService(),

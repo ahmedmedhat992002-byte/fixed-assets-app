@@ -38,8 +38,10 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       final today = DateTime(now.year, now.month, now.day);
 
       List<NotificationModel> base;
+      final filteredByType = allNotifs.where((n) => n.type != NotificationType.message).toList();
+
       if (tabKey == 'today') {
-        base = allNotifs
+        base = filteredByType
             .where(
               (n) =>
                   n.date.year == today.year &&
@@ -50,7 +52,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       } else if (tabKey == 'week') {
         final weekStart = today.subtract(Duration(days: today.weekday - 1));
         final weekEnd = weekStart.add(const Duration(days: 6));
-        base = allNotifs
+        base = filteredByType
             .where(
               (n) =>
                   n.date.isAfter(weekStart.subtract(const Duration(days: 1))) &&
@@ -58,7 +60,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             )
             .toList();
       } else {
-        base = allNotifs;
+        base = filteredByType;
       }
 
       if (_searchQuery.trim().isEmpty) return base;

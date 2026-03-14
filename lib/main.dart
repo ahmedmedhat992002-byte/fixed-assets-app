@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 
 import 'package:assets_management/app/app.dart';
 import 'package:assets_management/core/auth/auth_service.dart';
@@ -13,6 +13,7 @@ import 'package:assets_management/core/theme/theme_controller.dart';
 import 'package:assets_management/core/supabase/supabase_config.dart';
 import 'package:assets_management/features/settings/data/notification_settings_controller.dart';
 import 'package:assets_management/features/settings/data/security_settings_controller.dart';
+import 'package:assets_management/core/chat/fcm_service.dart';
 
 
 
@@ -27,45 +28,16 @@ const _iosOptions = FirebaseOptions(
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  
-  // If the message has a notification or data, we can show it via local notifications.
-  // This is especially important for "data-only" messages or to ensure 
-  // the high_importance_channel is respected.
-  final notification = message.notification;
-  final data = message.data;
-
-  if (notification != null || data.isNotEmpty) {
-    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-        
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-    
-    await flutterLocalNotificationsPlugin.initialize(
-      settings: initializationSettings,
-    );
-
-    await flutterLocalNotificationsPlugin.show(
-      id: notification?.hashCode ?? 0,
-      title: notification?.title ?? data['title'] ?? 'New Message',
-      body: notification?.body ?? data['body'] ?? '',
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'high_importance_channel',
-          'High Importance Notifications',
-          channelDescription: 'This channel is used for important notifications.',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-      ),
-    );
+  if (Platform.isIOS) {
+    await Firebase.initializeApp(options: _iosOptions);
+  } else {
+    await Firebase.initializeApp();
   }
   
+  // The system natively handles displaying messages that contain a `notification`
+  // payload when the app is in the background or killed. 
+  // We do not need to manually trigger FlutterLocalNotificationsPlugin.show()
+  // for these messages because it'll cause duplicates or crash on iOS.
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
@@ -84,6 +56,8 @@ void main() async {
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
+
+  await FcmService().logRemote('APPBOOT: Project initialized');
 
   // Set the background messaging handler early on, as a named top-level function
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

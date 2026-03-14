@@ -65,6 +65,11 @@ class FcmService {
   /// Requests notification permission and saves the FCM token to Firestore.
   Future<void> initForUser(String uid) async {
     if (uid.isEmpty) return;
+    
+    // Ensure the Android notification channel exists at startup. 
+    // This allows background high-priority FCM notifications to display natively 
+    // without manual code interception.
+    await _initLocalNotifications();
 
     try {
       // 1. Request Android 13+ permission
@@ -170,6 +175,21 @@ class FcmService {
     }
   }
 
+  /// Helper for remote diagnostics (writes to Firestore debug_logs)
+  Future<void> logRemote(String message, {Object? error}) async {
+    try {
+      if (kDebugMode) debugPrint('REMOTE_LOG: $message');
+      await _firestore.collection('debug_logs').add({
+        'message': message,
+        'error': error?.toString(),
+        'timestamp': FieldValue.serverTimestamp(),
+        'platform': defaultTargetPlatform.name,
+      });
+    } catch (e) {
+      debugPrint('FAILED TO LOG REMOTE: $e');
+    }
+  }
+
   /// Fetches FCM tokens from Firestore and invokes the Supabase Edge Function
   /// `send-fcm` to securely deliver the notification.
   Future<void> sendPushToUser({
@@ -179,6 +199,8 @@ class FcmService {
     Map<String, dynamic>? data,
   }) async {
     if (targetUid.isEmpty) return;
+    await logRemote('FCM: Starting sendPushToUser for $targetUid');
+    
     try {
       // 1. Fetch the user's tokens from Firestore
       final tokensSnapshot = await _firestore
@@ -187,17 +209,23 @@ class FcmService {
           .collection('fcmTokens')
           .get();
 
-      if (tokensSnapshot.docs.isEmpty) return;
-
+      if (tokensSnapshot.docs.isEmpty) {
+        await logRemote('FCM: No tokens found for $targetUid');
+        return;
+      }
+      
       final tokens = tokensSnapshot.docs
           .map((doc) => doc.data()['token'] as String?)
           .where((t) => t != null && t.isNotEmpty)
           .toList();
 
+      await logRemote('FCM: Found ${tokens.length} tokens for $targetUid');
+
       if (tokens.isEmpty) return;
 
       // 2. Invoke the Supabase Edge Function
-      debugPrint('FCM: Invoking send-fcm for ${tokens.length} tokens');
+      await logRemote('FCM: Invoking send-fcm for ${tokens.length} tokens');
+      
       final res = await Supabase.instance.client.functions.invoke(
         'send-fcm',
         body: {
@@ -207,10 +235,13 @@ class FcmService {
           'data': data ?? {},
         },
       );
-      debugPrint('FCM Response: ${res.data}');
-    } catch (e) {
-      debugPrint('FCM Error: $e');
-      // If we are throwing, maybe show a toast or just rely on log
+      
+      await logRemote('FCM: Supabase response status ${res.status}');
+      debugPrint('FCM Response from Supabase: ${res.status} - ${res.data}');
+    } catch (e, stack) {
+      await logRemote('FCM CRITICAL ERROR: $e', error: e);
+      debugPrint('FCM CRITICAL ERROR: $e');
+      debugPrint('FCM STACKTRACE: $stack');
     }
   }
 }

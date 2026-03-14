@@ -525,6 +525,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
           }
 
           final chats = snapshot.data ?? [];
+          
+          for (final chatData in chats) {
+            final lastSenderId = chatData['lastSenderId'];
+            final lastStatus = chatData['lastMessageStatus']; // Use standardized status field
+            // To be safe and efficient, we only trigger if there's an indication of a new message
+            if (lastSenderId != null && lastSenderId != uid && lastStatus != 'seen' && lastStatus != 'delivered') {
+              chatService.markAsDelivered(chatData['id'] ?? '', uid);
+            }
+          }
+
           final filteredChats = chats.where((c) {
             final names =
                 (c['participantNames'] as Map<dynamic, dynamic>?)?.values

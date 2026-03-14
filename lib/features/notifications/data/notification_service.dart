@@ -35,6 +35,7 @@ class NotificationService extends ChangeNotifier {
         .doc(uid)
         .collection('notifications')
         .where('isRead', isEqualTo: false)
+        .where('type', isNotEqualTo: 'message') // Exclude chat messages from the unread badge
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
   }

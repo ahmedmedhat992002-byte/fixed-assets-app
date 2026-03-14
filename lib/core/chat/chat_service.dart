@@ -3,19 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../supabase/supabase_config.dart';
-import '../../features/notifications/data/notification_service.dart';
-import '../../features/notifications/data/notification_model.dart';
+
 import '../chat/fcm_service.dart';
 
 class ChatService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _supabase = Supabase.instance.client;
 
-  NotificationService? _notificationService;
 
-  void setNotificationService(NotificationService service) {
-    _notificationService = service;
-  }
+  // NotificationService is no longer needed here as chat notifications 
+  // are now handled via FCM only and not logged in the central Notifications screen.
+
 
   /// Returns a total unread count stream for a user.
   Stream<int> getTotalUnreadCountStream(String uid) {
@@ -159,6 +157,7 @@ class ChatService extends ChangeNotifier {
       'lastSenderId': senderId,
       'lastSenderName': senderName,
       'lastSenderEmail': senderEmail,
+      'lastMessageStatus': 'sent', // Track status on chat doc for efficient list updates
       'unreadCounts.$senderId': 0, // Reset sender's unread
     });
 
@@ -185,39 +184,39 @@ class ChatService extends ChangeNotifier {
 
     // REFINE: Let's fetch the recipient ID first.
     final chatDoc = await chatRef.get();
+    
+    // Diagnostic: Log chat doc status
+    await FcmService().logRemote('CHAT: Sending message in $chatId. Doc exists: ${chatDoc.exists}');
+    
     if (chatDoc.exists) {
       final participants = List<String>.from(
         chatDoc.data()?['participants'] ?? [],
       );
+      
+      await FcmService().logRemote('CHAT: Participants found: ${participants.length}');
+      
       for (final pId in participants) {
         if (pId != senderId) {
+          await FcmService().logRemote('CHAT: Found recipient $pId. Attempting FCM...');
           batch.update(chatRef, {'unreadCounts.$pId': FieldValue.increment(1)});
 
-          // Trigger in-app notification for the recipient
-          if (_notificationService != null) {
-            _notificationService!.sendSystemNotificationToUser(
-              targetUid: pId,
-              title: 'New Message from $senderName',
-              subtitle: 'From $senderName',
-              body: (fileUrl != null && text.trim().isEmpty)
-                  ? (_isImageType(fileType) ? '📷 Photo' : '📎 ${fileName ?? 'File'}')
-                  : (text.trim().isEmpty ? 'New message' : text.trim()),
-              type: NotificationType.message,
-              routeName: '/chat_detail',
-              routeArgs: {'chatId': chatId},
-            );
-          }
+
 
           // Send FCM push notification
           final pushBody = (fileUrl != null && text.trim().isEmpty)
               ? (_isImageType(fileType) ? '📷 Photo' : '📎 ${fileName ?? 'File'}')
               : (text.trim().isEmpty ? 'New message' : text.trim());
-          FcmService().sendPushToUser(
+          
+          await FcmService().sendPushToUser(
             targetUid: pId,
             title: senderName,
             body: pushBody,
-            data: {'chatId': chatId, 'type': 'chat_message'},
-          ).ignore();
+            data: {
+              'chatId': chatId,
+              'senderId': senderId,
+              'type': 'chat',
+            },
+          );
         }
       }
     }
@@ -272,7 +271,44 @@ class ChatService extends ChangeNotifier {
     return null;
   }
 
-  /// Marks a chat as read for a specific user.
+  /// Marks all messages sent by others in a chat as delivered.
+  Future<void> markAsDelivered(String chatId, String uid) async {
+    if (chatId.isEmpty || uid.isEmpty) return;
+    try {
+      // Fetch recent messages. Removed limit to ensure all 'sent' messages are caught.
+      // We don't order by timestamp here to avoid missing messages with null (pending) timestamps.
+      final messages = await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .where('status', isEqualTo: 'sent')
+          .get();
+
+      if (messages.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        bool updated = false;
+        for (var doc in messages.docs) {
+          final data = doc.data();
+          if (data['senderId'] != uid) {
+            batch.update(doc.reference, {'status': 'delivered'});
+            updated = true;
+          }
+        }
+        
+        // Also update the status on the chat document if the last message was the one delivered
+        batch.update(_firestore.collection('chats').doc(chatId), {
+          'lastMessageStatus': 'delivered'
+        });
+        updated = true;
+
+        if (updated) await batch.commit();
+      }
+    } catch (e) {
+      debugPrint('Error in markAsDelivered: $e');
+    }
+  }
+
+  /// Marks all messages as read (seen).
   Future<void> markAsRead(String chatId, String uid) async {
     if (chatId.isEmpty || uid.isEmpty) return;
     try {
@@ -280,25 +316,32 @@ class ChatService extends ChangeNotifier {
         'unreadCounts.$uid': 0,
       });
 
-      // Mark all incoming messages as seen when chat is opened.
-      // Fetch all messages by the other user and update their status.
-      // Note: We avoid multiple inequality filters by only filtering on senderId.
+      // Filter messages that are NOT by 'uid' and NOT 'seen'
       final messages = await _firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
-          .where('senderId', isNotEqualTo: uid)
           .get();
 
       if (messages.docs.isNotEmpty) {
         final batch = _firestore.batch();
+        bool updated = false;
         for (var doc in messages.docs) {
-          final status = doc.data()['status'] as String? ?? '';
-          if (status != 'seen') {
+          final data = doc.data();
+          if (data['senderId'] != uid && data['status'] != 'seen') {
             batch.update(doc.reference, {'status': 'seen'});
+            updated = true;
           }
         }
-        await batch.commit();
+        
+        // Also update the status on the chat document
+        batch.update(_firestore.collection('chats').doc(chatId), {
+          'unreadCounts.$uid': 0,
+          'lastMessageStatus': 'seen',
+        });
+        updated = true;
+
+        if (updated) await batch.commit();
       }
     } catch (e) {
       debugPrint('Error in markAsRead: $e');
