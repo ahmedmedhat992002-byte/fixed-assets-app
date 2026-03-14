@@ -958,12 +958,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         break;
       case 'delivered':
         iconData = Icons.done_all_rounded;
-        iconColor = isInsideBubble ? Colors.white70 : Colors.grey;
+        iconColor = isInsideBubble ? Colors.white70 : Colors.black45;
         break;
       case 'sent':
       default:
         iconData = Icons.check_rounded;
-        iconColor = isInsideBubble ? Colors.white60 : Colors.grey.shade400;
+        iconColor = isInsideBubble ? Colors.white54 : Colors.black38;
         break;
     }
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -125,6 +126,13 @@ class FcmService {
       debugPrint('Got a message whilst in the foreground!');
       RemoteNotification? notification = message.notification;
 
+      // Extract chatId and acknowledge delivery immediately
+      final chatId = message.data['chatId'];
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (chatId != null && uid != null) {
+        _markAsDeliveredDirectly(chatId, uid);
+      }
+
       // If `onMessage` is triggered, we show a local notification
       // to create a "Heads Up" effect while the app is open.
       if (notification != null && !kIsWeb) {
@@ -155,6 +163,40 @@ class FcmService {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('A new onMessageOpenedApp event was published!');
     });
+  }
+
+  /// Directly updates messages to 'delivered' status in Firestore.
+  /// This is used for immediate delivery acknowledgement.
+  Future<void> _markAsDeliveredDirectly(String chatId, String uid) async {
+    try {
+      final db = FirebaseFirestore.instance;
+      // Immediate chat doc update
+      await db.collection('chats').doc(chatId).update({
+        'lastMessageStatus': 'delivered'
+      });
+
+      // Update individual messages
+      final messages = await db
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .where('status', isEqualTo: 'sent')
+          .get();
+
+      if (messages.docs.isNotEmpty) {
+        final batch = db.batch();
+        bool updated = false;
+        for (var doc in messages.docs) {
+          if (doc.data()['senderId'] != uid) {
+            batch.update(doc.reference, {'status': 'delivered'});
+            updated = true;
+          }
+        }
+        if (updated) await batch.commit();
+      }
+    } catch (e) {
+      debugPrint('Error acknowledging delivery: $e');
+    }
   }
 
   /// Removes the current device token when the user signs out.

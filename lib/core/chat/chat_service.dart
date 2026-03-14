@@ -275,13 +275,16 @@ class ChatService extends ChangeNotifier {
   Future<void> markAsDelivered(String chatId, String uid) async {
     if (chatId.isEmpty || uid.isEmpty) return;
     try {
-      // Fetch recent messages. Removed limit to ensure all 'sent' messages are caught.
-      // We don't order by timestamp here to avoid missing messages with null (pending) timestamps.
+      // First, update the chat document status (immediate effect on list)
+      await _firestore.collection('chats').doc(chatId).update({
+        'lastMessageStatus': 'delivered'
+      });
+
+      // Fetch all messages and filter in Dart for reliability
       final messages = await _firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
-          .where('status', isEqualTo: 'sent')
           .get();
 
       if (messages.docs.isNotEmpty) {
@@ -289,18 +292,11 @@ class ChatService extends ChangeNotifier {
         bool updated = false;
         for (var doc in messages.docs) {
           final data = doc.data();
-          if (data['senderId'] != uid) {
+          if (data['senderId'] != uid && data['status'] == 'sent') {
             batch.update(doc.reference, {'status': 'delivered'});
             updated = true;
           }
         }
-        
-        // Also update the status on the chat document if the last message was the one delivered
-        batch.update(_firestore.collection('chats').doc(chatId), {
-          'lastMessageStatus': 'delivered'
-        });
-        updated = true;
-
         if (updated) await batch.commit();
       }
     } catch (e) {
@@ -312,11 +308,13 @@ class ChatService extends ChangeNotifier {
   Future<void> markAsRead(String chatId, String uid) async {
     if (chatId.isEmpty || uid.isEmpty) return;
     try {
+      // First, update the chat document status and unread count
       await _firestore.collection('chats').doc(chatId).update({
         'unreadCounts.$uid': 0,
+        'lastMessageStatus': 'seen',
       });
 
-      // Filter messages that are NOT by 'uid' and NOT 'seen'
+      // Fetch all messages and mark as seen in background
       final messages = await _firestore
           .collection('chats')
           .doc(chatId)
@@ -333,14 +331,6 @@ class ChatService extends ChangeNotifier {
             updated = true;
           }
         }
-        
-        // Also update the status on the chat document
-        batch.update(_firestore.collection('chats').doc(chatId), {
-          'unreadCounts.$uid': 0,
-          'lastMessageStatus': 'seen',
-        });
-        updated = true;
-
         if (updated) await batch.commit();
       }
     } catch (e) {
