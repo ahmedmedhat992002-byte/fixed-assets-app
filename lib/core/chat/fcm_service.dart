@@ -19,6 +19,10 @@ class FcmService {
       FlutterLocalNotificationsPlugin();
 
   bool _isLocalNotificationsInitialized = false;
+  
+  /// The ID of the chat currently being viewed by the user.
+  /// Notifications for this chat will be suppressed in the foreground.
+  String? activeChatId;
 
   /// Initializes local notifications for foreground display.
   Future<void> _initLocalNotifications() async {
@@ -135,7 +139,8 @@ class FcmService {
 
       // If `onMessage` is triggered, we show a local notification
       // to create a "Heads Up" effect while the app is open.
-      if (notification != null && !kIsWeb) {
+      // WE FILTER it if the user is already inside THIS chat.
+      if (notification != null && !kIsWeb && chatId != activeChatId) {
         _localNotifications.show(
           id: notification.hashCode,
           title: notification.title,

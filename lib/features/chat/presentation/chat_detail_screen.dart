@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_config.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/chat/chat_service.dart';
+import '../../../core/chat/fcm_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/assets/asset_service.dart';
 import '../../../../app/routes/app_routes.dart';
@@ -104,6 +105,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _loadNickname();
     _loadFavoriteStickers();
     _markRead();
+    FcmService().activeChatId = widget.chatId; // Suppress notifications for this chat
     _preCheckPermissions();
 
     final authService = context.read<AuthService>();
@@ -1065,6 +1067,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _recordingDurationNotifier.dispose();
     _blockSubscription?.cancel();
     _recordingTimer?.cancel();
+    FcmService().activeChatId = null; // Resume notifications
     super.dispose();
   }
 
