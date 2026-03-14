@@ -1345,6 +1345,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         senderName: name,
         senderEmail: email,
         text: text,
+        recipientId: _otherUid, // Add this to speed up
         replyTo: _replyingTo.value,
       );
       

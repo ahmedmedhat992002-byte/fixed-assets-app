@@ -115,6 +115,7 @@ class ChatService extends ChangeNotifier {
     required String senderName,
     required String senderEmail,
     required String text,
+    String? recipientId, // Optional to speed up lookups
     String? fileUrl,
     String? fileName,
     String? fileType,
@@ -124,12 +125,8 @@ class ChatService extends ChangeNotifier {
     if (chatId.isEmpty || (text.trim().isEmpty && fileUrl == null && messageType == 'text')) return;
 
     final batch = _firestore.batch();
-    final messageRef = _firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .doc();
     final chatRef = _firestore.collection('chats').doc(chatId);
+    final messageRef = chatRef.collection('messages').doc();
 
     batch.set(messageRef, {
       'senderId': senderId,
@@ -161,70 +158,50 @@ class ChatService extends ChangeNotifier {
       'unreadCounts.$senderId': 0, // Reset sender's unread
     });
 
-    // Increment recipient's unread count
-    // We need to fetch participants to know who the recipient is, but for 1-1 chats,
-    // it's easier to just update the other participant if we can identify them.
-    // However, Increment is best done on the server.
-    // We use a trick: in Firestore rules or here, we target the OTHER user.
-    // For now, let's assume we update the specific map entry if we can find it.
-    // A better way is to use FieldValue.increment inside a map.
+    // Handle recipient unread count and notification
+    String? actualRecipientId = recipientId; // Use the provided recipientId if available
 
-    // We'll update the 'unreadCounts' map using dot notation to target the OTHER user.
-    // We'd need the recipient ID here. Let's find it from the chat doc or pass it.
-    // To keep sendMessage API clean, we'll try to find the recipient from a cached chat if possible,
-    // or just increment the other key in unreadCounts.
-
-    // Actually, let's just use a simple approach: any participant who is NOT senderId gets incremented.
-    // This handles 1-1 chats perfectly.
-    // We'll use a transaction or just a separate update if needed, but batch.update works with dot notation
-    // if we know the ID. Since we don't have recipient ID here easily, let's modify the signature or logic.
-
-    // Actually, let's fetch the chat doc once if needed or just handle it in the UI/Rules?
-    // No, server-side increment is best.
-
-    // REFINE: Let's fetch the recipient ID first.
-    final chatDoc = await chatRef.get();
-    
-    // Diagnostic: Log chat doc status
-    await FcmService().logRemote('CHAT: Sending message in $chatId. Doc exists: ${chatDoc.exists}');
-    
-    if (chatDoc.exists) {
-      final participants = List<String>.from(
-        chatDoc.data()?['participants'] ?? [],
-      );
-      
-      await FcmService().logRemote('CHAT: Participants found: ${participants.length}');
-      
-      for (final pId in participants) {
-        if (pId != senderId) {
-          await FcmService().logRemote('CHAT: Found recipient $pId. Attempting FCM...');
-          batch.update(chatRef, {'unreadCounts.$pId': FieldValue.increment(1)});
-
-
-
-          // Send FCM push notification
-          final pushBody = (fileUrl != null && text.trim().isEmpty)
-              ? (_isImageType(fileType) ? '📷 Photo' : '📎 ${fileName ?? 'File'}')
-              : (text.trim().isEmpty ? 'New message' : text.trim());
-          
-          await FcmService().sendPushToUser(
-            targetUid: pId,
-            title: senderName,
-            body: pushBody,
-            data: {
-              'chatId': chatId,
-              'senderId': senderId,
-              'type': 'chat',
-            },
-          );
+    if (actualRecipientId != null) {
+      batch.update(chatRef, {'unreadCounts.$actualRecipientId': FieldValue.increment(1)});
+    } else {
+      // Fallback: fetch participants if recipientId not provided
+      final chatDoc = await chatRef.get();
+      if (chatDoc.exists) {
+        final participants = List<String>.from(chatDoc.data()?['participants'] ?? []);
+        for (final pId in participants) {
+          if (pId != senderId) {
+            batch.update(chatRef, {'unreadCounts.$pId': FieldValue.increment(1)});
+            actualRecipientId = pId; // Use for notification
+            break; // Assuming 1-1 chat for simplicity, or first non-sender
+          }
         }
       }
     }
 
+    // Prepare notification data
+    final pushBody = (fileUrl != null && text.trim().isEmpty)
+        ? (_isImageType(fileType) ? '📷 Photo' : '📎 ${fileName ?? 'File'}')
+        : (text.trim().isEmpty ? 'New message' : text.trim());
+
+    // Commit the batch FIRST for instant UI feedback via Firestore persistence
     try {
       await batch.commit();
     } catch (e) {
       throw Exception('Failed to send message: $e');
+    }
+
+    // Fire off notification WITHOUT awaiting to keep UI responsive
+    if (actualRecipientId != null) {
+      FcmService().sendPushToUser(
+        targetUid: actualRecipientId,
+        title: senderName,
+        body: pushBody,
+        data: {
+          'chatId': chatId,
+          'senderId': senderId,
+          'type': 'chat',
+        },
+      ).catchError((e) => debugPrint('Non-blocking FCM error: $e'));
     }
   }
 
